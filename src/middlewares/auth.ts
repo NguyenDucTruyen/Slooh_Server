@@ -3,7 +3,7 @@ import httpStatus from 'http-status';
 import ApiError from '../utils/ApiError';
 import { roleRights } from '../config/roles';
 import { NextFunction, Request, Response } from 'express';
-import { User } from '@prisma/client';
+import { NGUOIDUNG as User } from '@prisma/client';
 
 const verifyCallback =
   (
@@ -19,11 +19,11 @@ const verifyCallback =
     req.user = user;
 
     if (requiredRights.length) {
-      const userRights = roleRights.get(user.role) ?? [];
+      const userRights = roleRights.get(user.quyen) ?? [];
       const hasRequiredRights = requiredRights.every((requiredRight) =>
         userRights.includes(requiredRight)
       );
-      if (!hasRequiredRights && req.params.userId !== user.id) {
+      if (!hasRequiredRights && req.params.userId !== user.maNguoiDung) {
         return reject(new ApiError(httpStatus.FORBIDDEN, 'Forbidden'));
       }
     }

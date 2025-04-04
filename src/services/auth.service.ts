@@ -2,7 +2,7 @@ import httpStatus from 'http-status';
 import tokenService from './token.service';
 import userService from './user.service';
 import ApiError from '../utils/ApiError';
-import { TokenType, User } from '@prisma/client';
+import { LoaiToken as TokenType, NGUOIDUNG as User } from '@prisma/client';
 import prisma from '../client';
 import { encryptPassword, isPasswordMatch } from '../utils/encryption';
 import { AuthTokensResponse } from '../types/response';
@@ -17,21 +17,12 @@ import exclude from '../utils/exclude';
 const loginUserWithEmailAndPassword = async (
   email: string,
   password: string
-): Promise<Omit<User, 'password'>> => {
-  const user = await userService.getUserByEmail(email, [
-    'id',
-    'email',
-    'name',
-    'password',
-    'role',
-    'isEmailVerified',
-    'createdAt',
-    'updatedAt'
-  ]);
-  if (!user || !(await isPasswordMatch(password, user.password as string))) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Incorrect email or password');
+): Promise<Omit<User, 'matKhau'>> => {
+  const user = await userService.getUserByEmail(email);
+  if (!user || !(await isPasswordMatch(password, user.matKhau as string))) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Email hoặc mật khẩu không chính xác');
   }
-  return exclude(user, ['password']);
+  return exclude(user, ['matKhau']);
 };
 
 /**
@@ -40,17 +31,17 @@ const loginUserWithEmailAndPassword = async (
  * @returns {Promise<void>}
  */
 const logout = async (refreshToken: string): Promise<void> => {
-  const refreshTokenData = await prisma.token.findFirst({
+  const refreshTokenData = await prisma.tOKEN.findFirst({
     where: {
       token: refreshToken,
-      type: TokenType.REFRESH,
-      blacklisted: false
+      loaiToken: TokenType.REFRESH,
+      daSuDung: false
     }
   });
   if (!refreshTokenData) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Not found');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Không tìm thấy');
   }
-  await prisma.token.delete({ where: { id: refreshTokenData.id } });
+  await prisma.tOKEN.delete({ where: { maToken: refreshTokenData.maToken } });
 };
 
 /**
@@ -61,11 +52,11 @@ const logout = async (refreshToken: string): Promise<void> => {
 const refreshAuth = async (refreshToken: string): Promise<AuthTokensResponse> => {
   try {
     const refreshTokenData = await tokenService.verifyToken(refreshToken, TokenType.REFRESH);
-    const { userId } = refreshTokenData;
-    await prisma.token.delete({ where: { id: refreshTokenData.id } });
-    return tokenService.generateAuthTokens({ id: userId });
+    const { maNguoiDung } = refreshTokenData;
+    await prisma.tOKEN.delete({ where: { maToken: refreshTokenData.maToken } });
+    return tokenService.generateAuthTokens({ maNguoiDung });
   } catch (error) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate');
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Vui lòng xác thực');
   }
 };
 
@@ -81,15 +72,17 @@ const resetPassword = async (resetPasswordToken: string, newPassword: string): P
       resetPasswordToken,
       TokenType.RESET_PASSWORD
     );
-    const user = await userService.getUserById(resetPasswordTokenData.userId);
+    const user = await userService.getUserById(resetPasswordTokenData.maNguoiDung);
     if (!user) {
       throw new Error();
     }
     const encryptedPassword = await encryptPassword(newPassword);
-    await userService.updateUserById(user.id, { password: encryptedPassword });
-    await prisma.token.deleteMany({ where: { userId: user.id, type: TokenType.RESET_PASSWORD } });
+    await userService.updateUserById(user.maNguoiDung, { matKhau: encryptedPassword });
+    await prisma.tOKEN.deleteMany({
+      where: { maNguoiDung: user.maNguoiDung, loaiToken: TokenType.RESET_PASSWORD }
+    });
   } catch (error) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Password reset failed');
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Đặt lại mật khẩu không thành công');
   }
 };
 
@@ -104,12 +97,12 @@ const verifyEmail = async (verifyEmailToken: string): Promise<void> => {
       verifyEmailToken,
       TokenType.VERIFY_EMAIL
     );
-    await prisma.token.deleteMany({
-      where: { userId: verifyEmailTokenData.userId, type: TokenType.VERIFY_EMAIL }
+    await prisma.tOKEN.deleteMany({
+      where: { maNguoiDung: verifyEmailTokenData.maNguoiDung, loaiToken: TokenType.VERIFY_EMAIL }
     });
-    await userService.updateUserById(verifyEmailTokenData.userId, { isEmailVerified: true });
+    await userService.updateUserById(verifyEmailTokenData.maNguoiDung, { daXacThucEmail: true });
   } catch (error) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Email verification failed');
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Xác thực email không thành công');
   }
 };
 

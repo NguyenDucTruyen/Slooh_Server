@@ -9,7 +9,7 @@ This project is an adaptation of the project [RESTful API Node Server Boilerplat
 Clone the repo:
 
 ```bash
-git clone --depth 1 https://github.com/antonio-lazaro/prisma-express-typescript-boilerplate.git
+git clone --depth 1 https://github.com/NguyenDucTruyen/Slooh_Server.git
 cd prisma-express-typescript-boilerplate
 npx rimraf ./.git
 ```

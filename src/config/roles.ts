@@ -1,7 +1,7 @@
-import { Role } from '@prisma/client';
+import { Quyen as Role } from '@prisma/client';
 
 const allRoles = {
-  [Role.USER]: [],
+  [Role.NGUOI_DUNG]: [],
   [Role.ADMIN]: ['getUsers', 'manageUsers']
 };
 

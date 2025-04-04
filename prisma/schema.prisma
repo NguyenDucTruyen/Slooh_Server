@@ -1,47 +1,248 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+  // This is your Prisma schema file,
+  // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-generator client {
-  provider = "prisma-client-js"
-  binaryTargets = ["native", "windows", "linux-musl", "linux-musl-openssl-3.0.x"]
-}
+  generator client {
+    provider      = "prisma-client-js"
+    binaryTargets = ["native", "windows", "linux-musl", "linux-musl-openssl-3.0.x"]
+  }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+  datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+  }
 
-model User {
-  id              Int      @id @default(autoincrement())
-  email           String   @unique
-  name            String?
-  password        String
-  role            Role     @default(USER)
-  isEmailVerified Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  Token           Token[]
-}
+  // Schema
 
-model Token {
-  id          Int       @id @default(autoincrement())
-  token       String
-  type        TokenType
-  expires     DateTime
-  blacklisted Boolean
-  createdAt   DateTime  @default(now())
-  user        User      @relation(fields: [userId], references: [id])
-  userId      Int
-}
+  enum Quyen {
+    NGUOI_DUNG
+    ADMIN
+  }
 
-enum Role {
-  USER
-  ADMIN
-}
+  enum TrangThai {
+    HOAT_DONG
+    KHOA
+  }
 
-enum TokenType {
-  ACCESS
-  REFRESH
-  RESET_PASSWORD
-  VERIFY_EMAIL
-}
+  enum LoaiToken {
+    ACCESS
+    REFRESH
+    RESET_PASSWORD
+    VERIFY_EMAIL
+  }
+
+  enum LoaiOAuth {
+    GOOGLE
+    GITHUB
+  }
+
+  enum VaiTroKenh {
+    THANH_VIEN
+    CHU_KENH
+  }
+
+  enum TrangThaiThanhVien {
+    YEU_CAU
+    THAM_GIA
+  }
+
+  enum HoatDongPhong {
+    OFFLINE
+    WAITING
+    PRESENTING
+  }
+
+  enum LoaiSlide {
+    NOI_DUNG
+    CAU_HOI
+  }
+
+  enum CachTrinhBay {
+    CO_BAN
+    TIEU_DE_LON
+    HAI_COT
+    DANH_SACH
+  }
+
+  enum Diem {
+    BINH_THUONG
+    GAP_DOI
+    KHONG_DIEM
+  }
+
+  enum LoaiCauHoi {
+    SINGLE_SELECT
+    MULTI_SELECT
+    TRUE_FALSE
+  }
+
+  enum VaiTroPhien {
+    THANH_VIEN
+    CHU_PHIEN
+  }
+
+  model NGUOIDUNG {
+    maNguoiDung    String                     @id @default(uuid())
+    hoTen          String
+    email          String                     @unique
+    matKhau        String
+    anhDaiDien     String?
+    quyen          Quyen                      @default(NGUOI_DUNG)
+    trangThai      TrangThai                  @default(HOAT_DONG)
+    daXacThucEmail Boolean                    @default(false)
+    ngayTao        DateTime                   @default(now())
+    ngayCapNhat    DateTime                   @updatedAt
+    tokens         TOKEN[]
+    oauth          OAUTH[]
+    kenh           THANHVIENKENH[]
+    phong          PHONG[]
+    thanhVienPhien THANHVIENPHIENTRINHCHIEU[]
+    baoCao         BAOCAO[]
+  }
+
+  model TOKEN {
+    maToken     String    @id @default(uuid())
+    maNguoiDung String
+    loaiToken   LoaiToken
+    token       String
+    hetHan      DateTime
+    daSuDung    Boolean   @default(false)
+    ngayTao     DateTime  @default(now())
+
+    nguoiDung NGUOIDUNG @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
+  }
+
+  model OAUTH {
+    maOauth     String    @id @default(uuid())
+    maNguoiDung String
+    loaiOAuth   LoaiOAuth
+    oauthId     String    @unique
+    token       String
+    ngayTao     DateTime  @default(now())
+
+    nguoiDung NGUOIDUNG @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
+  }
+
+  model KENH {
+    maKenh    String    @id @default(uuid())
+    tenKenh   String
+    trangThai TrangThai @default(HOAT_DONG)
+    ngayTao   DateTime  @default(now())
+    ngayXoa   DateTime?
+
+    thanhVien THANHVIENKENH[]
+    phong     PHONG[]
+  }
+
+  model THANHVIENKENH {
+    maThanhVienKenh String             @id @default(uuid())
+    maNguoiDung     String
+    maKenh          String
+    vaiTro          VaiTroKenh         @default(THANH_VIEN)
+    trangThai       TrangThaiThanhVien @default(YEU_CAU)
+    ngayTao         DateTime           @default(now())
+
+    nguoiDung NGUOIDUNG @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
+    kenh      KENH      @relation(fields: [maKenh], references: [maKenh], onDelete: Cascade)
+
+    @@unique([maNguoiDung, maKenh])
+  }
+
+  model PHONG {
+    maPhong    String        @id @default(uuid())
+    tenPhong   String
+    maKenh     String?
+    maChuPhong String
+    trangThai  TrangThai     @default(HOAT_DONG)
+    hoatDong   HoatDongPhong @default(OFFLINE)
+    ngayTao    DateTime      @default(now())
+    ngayXoa    DateTime?
+
+    kenh       KENH?             @relation(fields: [maKenh], references: [maKenh], onDelete: SetNull)
+    chuPhong   NGUOIDUNG         @relation(fields: [maChuPhong], references: [maNguoiDung], onDelete: Cascade)
+    slides     SLIDE[]
+    phienTrinh PHIENTRINHCHIEU[]
+    baoCao     BAOCAO[]
+  }
+
+  model SLIDE {
+    maSlide         String        @id @default(uuid())
+    maPhong         String
+    loaiSlide       LoaiSlide
+    thuTu           Int
+    tieuDe          String
+    hinhAnh         String?
+    video           String?
+    hinhNen         String?
+    cachTrinhBay    CachTrinhBay?
+    noiDung         String?
+    thoiGianGioiHan Int?
+    diem            Diem          @default(BINH_THUONG)
+    loaiCauHoi      LoaiCauHoi?
+
+    phong     PHONG       @relation(fields: [maPhong], references: [maPhong], onDelete: Cascade)
+    luaChon   LUACHON[]
+    cauTraLoi CAUTRALOI[]
+
+    @@unique([maPhong, thuTu])
+  }
+
+  model LUACHON {
+    maLuaChon String  @id @default(uuid())
+    maSlide   String
+    noiDung   String
+    ketQua    Boolean @default(false)
+
+    slide     SLIDE       @relation(fields: [maSlide], references: [maSlide], onDelete: Cascade)
+    CAUTRALOI CAUTRALOI[]
+  }
+
+  model PHIENTRINHCHIEU {
+    maPhien String   @id @default(uuid())
+    maPhong String
+    maPin   String   @unique
+    ngayTao DateTime @default(now())
+
+    phong     PHONG                      @relation(fields: [maPhong], references: [maPhong], onDelete: Cascade)
+    thanhVien THANHVIENPHIENTRINHCHIEU[]
+  }
+
+  model THANHVIENPHIENTRINHCHIEU {
+    maThanhVienPhien String      @id @default(uuid())
+    maNguoiDung      String?
+    maPhien          String
+    tenThanhVien     String
+    anhDaiDien       String?
+    vaiTro           VaiTroPhien @default(THANH_VIEN)
+    tongDiem         Int         @default(0)
+
+    nguoiDung NGUOIDUNG?      @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: SetNull)
+    phien     PHIENTRINHCHIEU @relation(fields: [maPhien], references: [maPhien], onDelete: Cascade)
+    CAUTRALOI CAUTRALOI[]
+
+    @@unique([maPhien, maNguoiDung])
+  }
+
+  model CAUTRALOI {
+    maCauTraLoi      String                   @id @default(uuid())
+    maSlide          String
+    maThanhVienPhien String
+    maLuaChon        String
+    thoiGian         Int
+    slide            SLIDE                    @relation(fields: [maSlide], references: [maSlide], onDelete: Cascade)
+    thanhVien        THANHVIENPHIENTRINHCHIEU @relation(fields: [maThanhVienPhien], references: [maThanhVienPhien], onDelete: Cascade)
+    luaChon          LUACHON                  @relation(fields: [maLuaChon], references: [maLuaChon], onDelete: Cascade)
+
+    @@unique([maSlide, maThanhVienPhien, maLuaChon])
+  }
+
+  model BAOCAO {
+    maBaoCao    String   @id @default(uuid())
+    maNguoiDung String
+    maPhong     String
+    noiDung     String
+    hinhAnh     String?
+    ngayTao     DateTime @default(now())
+
+    nguoiDung NGUOIDUNG @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
+    phong     PHONG     @relation(fields: [maPhong], references: [maPhong], onDelete: Cascade)
+  }
