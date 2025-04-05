@@ -90,10 +90,10 @@ const updateUserById = async (
 ): Promise<User | null> => {
   const user = await getUserById(maNguoiDung);
   if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Không tìm thấy người dùng');
   }
   if (updateBody.email && (await getUserByEmail(updateBody.email as string))) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Email đã tồn tại');
   }
   return prisma.nGUOIDUNG.update({ where: { maNguoiDung }, data: updateBody });
 };
@@ -106,7 +106,7 @@ const updateUserById = async (
 const deleteUserById = async (maNguoiDung: string): Promise<User> => {
   const user = await getUserById(maNguoiDung);
   if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Không tìm thấy người dùng');
   }
   await prisma.nGUOIDUNG.delete({ where: { maNguoiDung } });
   return user;

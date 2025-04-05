@@ -72,7 +72,7 @@ const verifyToken = async (token: string, type: TokenType): Promise<Token> => {
     where: { token, loaiToken: type, maNguoiDung: userId, daSuDung: false }
   });
   if (!tokenData) {
-    throw new Error('Token not found');
+    throw new Error('Token không hợp lệ hoặc đã bị thu hồi');
   }
   return tokenData;
 };
@@ -110,7 +110,7 @@ const generateAuthTokens = async (user: { maNguoiDung: string }): Promise<AuthTo
 const generateResetPasswordToken = async (email: string): Promise<string> => {
   const user = await userService.getUserByEmail(email);
   if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'No users found with this email');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Không tìm thấy người dùng với email này');
   }
   const expires = moment().add(config.jwt.resetPasswordExpirationMinutes, 'minutes');
   const resetPasswordToken = generateToken(user.maNguoiDung, expires, TokenType.RESET_PASSWORD);
