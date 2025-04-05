@@ -14,7 +14,7 @@ const verifyCallback =
   ) =>
   async (err: unknown, user: User | false, info: unknown) => {
     if (err || info || !user) {
-      return reject(new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate'));
+      return reject(new ApiError(httpStatus.UNAUTHORIZED, 'Vui lòng xác thực'));
     }
     req.user = user;
 

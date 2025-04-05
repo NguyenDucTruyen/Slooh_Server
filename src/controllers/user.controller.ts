@@ -3,6 +3,8 @@ import pick from '../utils/pick';
 import ApiError from '../utils/ApiError';
 import catchAsync from '../utils/catchAsync';
 import { userService } from '../services';
+import { NGUOIDUNG as User } from '@prisma/client';
+import exclude from '../utils/exclude';
 
 const createUser = catchAsync(async (req, res) => {
   const { email, password, name, role } = req.body;
@@ -22,7 +24,7 @@ const getUser = catchAsync(async (req, res) => {
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Không tìm thấy người dùng');
   }
-  res.send(user);
+  res.send(exclude(user, ['matKhau']));
 });
 
 const updateUser = catchAsync(async (req, res) => {
@@ -35,10 +37,20 @@ const deleteUser = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
+const getMe = catchAsync(async (req, res) => {
+  const user = req.user as User;
+  const userExisted = await userService.getUserById(user.maNguoiDung);
+  if (!userExisted) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Không tìm thấy người dùng');
+  }
+  res.send(exclude(userExisted, ['matKhau']));
+});
+
 export default {
   createUser,
   getUsers,
   getUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  getMe
 };
