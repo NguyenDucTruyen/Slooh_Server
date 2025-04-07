@@ -4,7 +4,7 @@ import ApiError from '../utils/ApiError';
 import { roleRights } from '../config/roles';
 import { NextFunction, Request, Response } from 'express';
 import { NGUOIDUNG as User } from '@prisma/client';
-
+import config from '../config/config';
 const verifyCallback =
   (
     req: any,
@@ -45,4 +45,20 @@ const auth =
       .catch((err) => next(err));
   };
 
+const googleAuth = async (req: Request, res: Response, next: NextFunction) => {
+  return new Promise<void>((resolve) => {
+    passport.authenticate('google', { session: false }, (err, user) => {
+      if (err) {
+        const { message } = err;
+        res.redirect(`${config.appUrl.client}/auth/login?error=${message}`);
+      }
+      req.user = user;
+      resolve();
+    })(req, res, next);
+  })
+    .then(() => next())
+    .catch((err) => next(err));
+};
+
 export default auth;
+export { googleAuth };

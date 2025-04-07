@@ -57,5 +57,14 @@ export default {
       }
     },
     from: envVars.EMAIL_FROM
+  },
+  appUrl: {
+    client: process.env.APP_URL_CLIENT,
+    server: process.env.APP_URL_SERVER
+  },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackUrl: `${process.env.APP_URL_SERVER}/v1/auth/google/callback`
   }
 };

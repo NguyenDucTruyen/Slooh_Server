@@ -3,7 +3,7 @@ import catchAsync from '../utils/catchAsync';
 import { authService, userService, tokenService, emailService } from '../services';
 import exclude from '../utils/exclude';
 import { NGUOIDUNG as User } from '@prisma/client';
-
+import config from '../config/config';
 const register = catchAsync(async (req, res) => {
   const { email, password, name } = req.body;
   const user = await userService.createUser(email, password, name);
@@ -18,7 +18,13 @@ const login = catchAsync(async (req, res) => {
   const tokens = await tokenService.generateAuthTokens(user);
   res.send({ tokens });
 });
-
+const loginWithGoogle = catchAsync(async (req, res) => {
+  const user = req.user as User;
+  const tokens = await tokenService.generateAuthTokens(user);
+  res.redirect(
+    `${config.appUrl.client}/auth/callback?accessToken=${tokens.access.token}&refreshToken=${tokens.refresh?.token}`
+  );
+});
 const logout = catchAsync(async (req, res) => {
   await authService.logout(req.body.refreshToken);
   res.status(httpStatus.NO_CONTENT).send();
@@ -63,6 +69,7 @@ const verifyEmail = catchAsync(async (req, res) => {
 export default {
   register,
   login,
+  loginWithGoogle,
   logout,
   refreshTokens,
   forgotPassword,

@@ -2,7 +2,8 @@ import express from 'express';
 import validate from '../../middlewares/validate';
 import authValidation from '../../validations/auth.validation';
 import { authController } from '../../controllers';
-import auth from '../../middlewares/auth';
+import auth, { googleAuth } from '../../middlewares/auth';
+import passport from 'passport';
 
 const router = express.Router();
 
@@ -26,6 +27,8 @@ router.post(
 );
 router.post('/send-verification-email', auth(), authController.sendVerificationEmail);
 router.post('/verify-email', validate(authValidation.verifyEmail), authController.verifyEmail);
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/google/callback', googleAuth, authController.loginWithGoogle);
 
 export default router;
 

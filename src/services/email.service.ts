@@ -1,10 +1,8 @@
 import nodemailer from 'nodemailer';
 import config from '../config/config';
 import logger from '../config/logger';
-import dotenv from 'dotenv';
 
 const transport = nodemailer.createTransport(config.email.smtp);
-dotenv.config();
 /* istanbul ignore next */
 if (config.env !== 'test') {
   transport
@@ -37,7 +35,7 @@ const sendEmail = async (to: string, subject: string, html: string) => {
  */
 const sendResetPasswordEmail = async (to: string, token: string) => {
   const subject = 'Reset Password';
-  const resetPasswordUrl = `${process.env.APP_URL}/auth/reset-password?token=${token}`;
+  const resetPasswordUrl = `${config.appUrl.client}/auth/reset-password?token=${token}`;
   const html = `
     <html lang="en">
       <head>
@@ -76,7 +74,7 @@ const sendResetPasswordEmail = async (to: string, token: string) => {
  */
 const sendVerificationEmail = async (to: string, token: string) => {
   const subject = 'Email Verification';
-  const verificationEmailUrl = `${process.env.APP_URL}/verify-email?token=${token}`;
+  const verificationEmailUrl = `${config.appUrl.client}/verify-email?token=${token}`;
   const html = `
     <html lang="en">
       <head>

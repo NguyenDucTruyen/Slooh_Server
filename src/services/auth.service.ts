@@ -106,6 +106,69 @@ const verifyEmail = async (verifyEmailToken: string): Promise<void> => {
   }
 };
 
+/**
+ * Find or create user
+ * @param {string} email
+ * @param {string} name
+ * @returns {Promise<User>}
+ */
+
+const findOrCreateUser = async (
+  accessToken: string,
+  profile: any
+): Promise<Omit<User, 'matKhau'>> => {
+  const oauthId = profile.id;
+  const email = profile.emails?.[0]?.value;
+  const name = profile.displayName;
+  const avatar = profile.photos?.[0]?.value;
+
+  const oauthUser = await prisma.oAUTH.findUnique({
+    where: { oauthId },
+    include: { nguoiDung: true }
+  });
+
+  if (oauthUser) {
+    return oauthUser.nguoiDung;
+  }
+
+  if (!email) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Email không hợp lệ');
+  }
+
+  const existingUser = await prisma.nGUOIDUNG.findUnique({
+    where: { email }
+  });
+  if (existingUser) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Email này đã được đăng ký bằng phương thức khác. Vui lòng đăng nhập bằng email và mật khẩu.'
+    );
+  } else {
+    const newUser = await prisma.nGUOIDUNG.create({
+      data: {
+        email,
+        hoTen: name,
+        matKhau: await encryptPassword('GOOGLE_AUTH_PASSWORD'),
+        anhDaiDien: avatar,
+        daXacThucEmail: true
+      }
+    });
+
+    await prisma.oAUTH.create({
+      data: {
+        oauthId,
+        loaiOAuth: 'GOOGLE',
+        token: accessToken,
+        nguoiDung: {
+          connect: { maNguoiDung: newUser.maNguoiDung }
+        }
+      }
+    });
+
+    return newUser;
+  }
+};
+
 export default {
   loginUserWithEmailAndPassword,
   isPasswordMatch,
@@ -113,5 +176,6 @@ export default {
   logout,
   refreshAuth,
   resetPassword,
-  verifyEmail
+  verifyEmail,
+  findOrCreateUser
 };

@@ -2,7 +2,7 @@
   "files.eol": "\r\n",
   "editor.formatOnSave": false,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
+    "source.fixAll.eslint": "explicit"
   },
   "python.formatting.provider": "yapf"
 }
