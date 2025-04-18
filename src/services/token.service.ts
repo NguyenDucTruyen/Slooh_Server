@@ -1,15 +1,15 @@
+import { MA as Token, LoaiMa as TokenType } from '@prisma/client';
+import httpStatus from 'http-status';
 import jwt from 'jsonwebtoken';
 import moment, { Moment } from 'moment';
-import httpStatus from 'http-status';
-import config from '../config/config';
-import userService from './user.service';
-import ApiError from '../utils/ApiError';
-import { TOKEN as Token, LoaiToken as TokenType } from '@prisma/client';
 import prisma from '../client';
+import config from '../config/config';
 import { AuthTokensResponse } from '../types/response';
+import ApiError from '../utils/ApiError';
+import userService from './user.service';
 
 /**
- * Generate token
+ * Generate ma
  * @param {string} userId
  * @param {Moment} expires
  * @param {string} type
@@ -32,8 +32,8 @@ const generateToken = (
 };
 
 /**
- * Save a token
- * @param {string} token
+ * Save a ma
+ * @param {string} ma
  * @param {number} userId
  * @param {Moment} expires
  * @param {string} type
@@ -41,18 +41,18 @@ const generateToken = (
  * @returns {Promise<Token>}
  */
 const saveToken = async (
-  token: string,
+  ma: string,
   maNguoiDung: string,
   hetHan: Moment,
   type: TokenType,
   daSuDung = false
 ): Promise<Token> => {
-  const createdToken = prisma.tOKEN.create({
+  const createdToken = prisma.mA.create({
     data: {
-      token,
+      ma,
       maNguoiDung,
       hetHan: hetHan.toDate(),
-      loaiToken: type,
+      loaiMa: type,
       daSuDung
     }
   });
@@ -60,16 +60,16 @@ const saveToken = async (
 };
 
 /**
- * Verify token and return token doc (or throw an error if it is not valid)
- * @param {string} token
+ * Verify ma and return ma doc (or throw an error if it is not valid)
+ * @param {string} ma
  * @param {string} type
  * @returns {Promise<Token>}
  */
-const verifyToken = async (token: string, type: TokenType): Promise<Token> => {
-  const payload = jwt.verify(token, config.jwt.secret);
+const verifyToken = async (ma: string, type: TokenType): Promise<Token> => {
+  const payload = jwt.verify(ma, config.jwt.secret);
   const userId = String(payload.sub);
-  const tokenData = await prisma.tOKEN.findFirst({
-    where: { token, loaiToken: type, maNguoiDung: userId, daSuDung: false }
+  const tokenData = await prisma.mA.findFirst({
+    where: { ma, loaiMa: type, maNguoiDung: userId, daSuDung: false }
   });
   if (!tokenData) {
     throw new Error('Token không hợp lệ hoặc đã bị thu hồi');
@@ -103,7 +103,7 @@ const generateAuthTokens = async (user: { maNguoiDung: string }): Promise<AuthTo
 };
 
 /**
- * Generate reset password token
+ * Generate reset password ma
  * @param {string} email
  * @returns {Promise<string>}
  */
@@ -119,7 +119,7 @@ const generateResetPasswordToken = async (email: string): Promise<string> => {
 };
 
 /**
- * Generate verify email token
+ * Generate verify email ma
  * @param {User} user
  * @returns {Promise<string>}
  */

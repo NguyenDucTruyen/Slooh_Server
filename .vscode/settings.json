@@ -1,8 +1,38 @@
 {
-  "files.eol": "\r\n",
-  "editor.formatOnSave": false,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
+  "explorer.confirmDelete": false,
+  "tabnine.experimentalAutoImports": true,
+  "security.workspace.trust.untrustedFiles": "open",
+  "window.zoomLevel": 1,
+  "files.autoSave": "afterDelay",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "terminal.integrated.enableMultiLinePasteWarning": "never",
+  "terminal.integrated.defaultProfile.windows": "Command Prompt",
+  "github.copilot.editor.enableAutoCompletions": true,
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": false,
+    "markdown": true,
+    "scminput": false
   },
-  "python.formatting.provider": "yapf"
+  "python.formatting.provider": "autopep8",
+
+  // 💡 Tự động format khi lưu với Prettier
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "chat.editing.alwaysSaveWithGeneratedChanges": true,
+  "remote.SSH.remotePlatform": {
+    "vr-01": "linux",
+    "jamcircle": "linux"
+  },
+  "notebook.formatOnSave.enabled": true
 }
