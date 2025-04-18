@@ -23,7 +23,7 @@
     KHOA
   }
 
-  enum LoaiToken {
+  enum LoaiMa {
     ACCESS
     REFRESH
     RESET_PASSWORD
@@ -51,7 +51,7 @@
     PRESENTING
   }
 
-  enum LoaiSlide {
+  enum LoaiTrang {
     NOI_DUNG
     CAU_HOI
   }
@@ -81,29 +81,30 @@
   }
 
   model NGUOIDUNG {
-    maNguoiDung    String                     @id @default(uuid())
-    hoTen          String
-    email          String                     @unique
-    matKhau        String
-    anhDaiDien     String?
-    quyen          Quyen                      @default(NGUOI_DUNG)
-    trangThai      TrangThai                  @default(HOAT_DONG)
-    daXacThucEmail Boolean                    @default(false)
-    ngayTao        DateTime                   @default(now())
-    ngayCapNhat    DateTime                   @updatedAt
-    tokens         TOKEN[]
-    oauth          OAUTH[]
-    kenh           THANHVIENKENH[]
-    phong          PHONG[]
-    thanhVienPhien THANHVIENPHIENTRINHCHIEU[]
-    baoCao         BAOCAO[]
-  }
+  maNguoiDung    String                     @id @default(uuid())
+  hoTen          String
+  email          String                     @unique
+  matKhau        String
+  anhDaiDien     String?
+  quyen          Quyen                      @default(NGUOI_DUNG)
+  trangThai      TrangThai                  @default(HOAT_DONG)
+  daXacThucEmail Boolean                    @default(false)
+  ngayTao        DateTime                   @default(now())
+  ngayCapNhat    DateTime                   @updatedAt
+  mas            MA[]
+  oauth          OAUTH?                     @relation("NguoiDungOauth") // One-to-one relation
+  kenh           THANHVIENKENH[]
+  phong          PHONG[]
+  thanhVienPhien THANHVIENPHIENTRINHCHIEU[]
+  baoCao         BAOCAO[]
+}
 
-  model TOKEN {
-    maToken     String    @id @default(uuid())
+
+  model MA {
+    maMa     String    @id @default(uuid())
     maNguoiDung String
-    loaiToken   LoaiToken
-    token       String
+    loaiMa   LoaiMa
+    ma       String
     hetHan      DateTime
     daSuDung    Boolean   @default(false)
     ngayTao     DateTime  @default(now())
@@ -112,15 +113,16 @@
   }
 
   model OAUTH {
-    maOauth     String    @id @default(uuid())
-    maNguoiDung String
-    loaiOAuth   LoaiOAuth
-    oauthId     String    @unique
-    token       String
-    ngayTao     DateTime  @default(now())
+  maOauth     String    @id @default(uuid())
+  maNguoiDung String    @unique                // Enforces 1-1 relationship
+  loaiOAuth   LoaiOAuth
+  oauthId     String    @unique
+  ma          String
+  ngayTao     DateTime  @default(now())
 
-    nguoiDung NGUOIDUNG @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
-  }
+  nguoiDung NGUOIDUNG @relation("NguoiDungOauth", fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
+}
+
 
   model KENH {
     maKenh    String    @id @default(uuid())
@@ -159,15 +161,15 @@
 
     kenh       KENH?             @relation(fields: [maKenh], references: [maKenh], onDelete: SetNull)
     chuPhong   NGUOIDUNG         @relation(fields: [maChuPhong], references: [maNguoiDung], onDelete: Cascade)
-    slides     SLIDE[]
+    trangs     TRANG[]
     phienTrinh PHIENTRINHCHIEU[]
     baoCao     BAOCAO[]
   }
 
-  model SLIDE {
-    maSlide         String        @id @default(uuid())
+  model TRANG {
+    maTrang         String        @id @default(uuid())
     maPhong         String
-    loaiSlide       LoaiSlide
+    loaiTrang       LoaiTrang
     thuTu           Int
     tieuDe          String
     hinhAnh         String?
@@ -181,18 +183,17 @@
 
     phong     PHONG       @relation(fields: [maPhong], references: [maPhong], onDelete: Cascade)
     luaChon   LUACHON[]
-    cauTraLoi CAUTRALOI[]
 
     @@unique([maPhong, thuTu])
   }
 
   model LUACHON {
     maLuaChon String  @id @default(uuid())
-    maSlide   String
+    maTrang   String
     noiDung   String
     ketQua    Boolean @default(false)
 
-    slide     SLIDE       @relation(fields: [maSlide], references: [maSlide], onDelete: Cascade)
+    trang     TRANG       @relation(fields: [maTrang], references: [maTrang], onDelete: Cascade)
     CAUTRALOI CAUTRALOI[]
   }
 
@@ -224,15 +225,13 @@
 
   model CAUTRALOI {
     maCauTraLoi      String                   @id @default(uuid())
-    maSlide          String
     maThanhVienPhien String
     maLuaChon        String
     thoiGian         Int
-    slide            SLIDE                    @relation(fields: [maSlide], references: [maSlide], onDelete: Cascade)
     thanhVien        THANHVIENPHIENTRINHCHIEU @relation(fields: [maThanhVienPhien], references: [maThanhVienPhien], onDelete: Cascade)
     luaChon          LUACHON                  @relation(fields: [maLuaChon], references: [maLuaChon], onDelete: Cascade)
 
-    @@unique([maSlide, maThanhVienPhien, maLuaChon])
+    @@unique([maThanhVienPhien, maLuaChon])
   }
 
   model BAOCAO {

@@ -1,9 +1,9 @@
-import prisma from '../client';
-import { Strategy as JwtStrategy, ExtractJwt, VerifyCallback, Strategy } from 'passport-jwt';
-import config from './config';
-import { LoaiToken as TokenType } from '@prisma/client';
+import { LoaiMa as TokenType } from '@prisma/client';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { ExtractJwt, Strategy as JwtStrategy, VerifyCallback } from 'passport-jwt';
+import prisma from '../client';
 import { authService } from '../services';
+import config from './config';
 
 const jwtOptions = {
   secretOrKey: config.jwt.secret,

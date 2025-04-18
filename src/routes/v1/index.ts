@@ -1,8 +1,9 @@
 import express from 'express';
-import authRoute from './auth.route';
-import userRoute from './user.route';
-import docsRoute from './docs.route';
 import config from '../../config/config';
+import authRoute from './auth.route';
+import docsRoute from './docs.route';
+import kenhRoute from './kenh.route';
+import userRoute from './user.route';
 
 const router = express.Router();
 
@@ -14,6 +15,10 @@ const defaultRoutes = [
   {
     path: '/users',
     route: userRoute
+  },
+  {
+    path: '/kenh',
+    route: kenhRoute
   }
 ];
 

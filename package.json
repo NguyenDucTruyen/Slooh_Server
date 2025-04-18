@@ -22,7 +22,8 @@
     "docker:dev-db:start": "docker-compose -f docker-compose.only-db-dev.yml up -d",
     "docker:dev-db:stop": "docker-compose -f docker-compose.only-db-dev.yml down",
     "prepare": "husky install",
-    "build": "rimraf build && tsc -p tsconfig.json"
+    "build": "rimraf build && tsc -p tsconfig.json",
+    "format": "prettier --write ."
   },
   "keywords": [
     "node",
@@ -72,7 +73,7 @@
     "lint-staged": "^13.1.0",
     "node-mocks-http": "^1.12.1",
     "nodemon": "^2.0.20",
-    "prettier": "^2.8.1",
+    "prettier": "^3.5.3",
     "prisma": "^4.10.1",
     "supertest": "^6.3.3",
     "swagger-jsdoc": "^6.2.5",
