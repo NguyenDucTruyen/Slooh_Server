@@ -137,8 +137,84 @@ const deleteChannel = async (channelId: string): Promise<ServiceResponse> => {
   }
 };
 
+// Lấy thông tin kênh theo ID
+const getChannelById = async (channelId: string): Promise<ServiceResponse> => {
+  try {
+    const channel = await prisma.kENH.findUnique({
+      where: { maKenh: channelId },
+      include: {
+        thanhVien: {
+          include: { nguoiDung: true }
+        }
+      }
+    });
+
+    if (!channel) {
+      return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy kênh.');
+    }
+
+    return createSuccessResponse(httpStatus.OK, 'Lấy thông tin kênh thành công.', channel);
+  } catch (error) {
+    console.error('Error getting channel by ID:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể lấy thông tin kênh');
+  }
+};
+
 // Lấy danh sách kênh với phân trang
 const getChannelList = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<ServiceResponse> => {
+  try {
+    const skip = (page - 1) * limit;
+    const [channels, total] = await Promise.all([
+      prisma.kENH.findMany({
+        where: {
+          ngayXoa: null,
+          thanhVien: {
+            some: {
+              maNguoiDung: userId,
+              vaiTro: VaiTroKenh.CHU_KENH
+            }
+          }
+        },
+        include: {
+          thanhVien: {
+            include: { nguoiDung: true }
+          }
+        },
+        skip,
+        take: limit
+      }),
+      prisma.kENH.count({
+        where: {
+          ngayXoa: null,
+          thanhVien: {
+            some: {
+              maNguoiDung: userId,
+              vaiTro: VaiTroKenh.CHU_KENH
+            }
+          }
+        }
+      })
+    ]);
+
+    return createSuccessResponse(httpStatus.OK, 'Lấy danh sách kênh thành công.', {
+      channels,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (error) {
+    console.error('Error getting channel list:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể lấy danh sách kênh');
+  }
+};
+
+// Admin lấy danh sách kênh
+const getAllChannelList = async (
   page: number = 1,
   limit: number = 10
 ): Promise<ServiceResponse> => {
@@ -174,7 +250,6 @@ const getChannelList = async (
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể lấy danh sách kênh');
   }
 };
-
 // Helper to find users by emails
 const findUsersByEmails = async (emails: string[]): Promise<ServiceResponse> => {
   const users = await prisma.nGUOIDUNG.findMany({
@@ -317,7 +392,8 @@ const getJoinedChannels = async (
         where: {
           maNguoiDung: userId,
           trangThai: TrangThaiThanhVien.THAM_GIA,
-          kenh: { ngayXoa: null }
+          kenh: { ngayXoa: null },
+          vaiTro: VaiTroKenh.THANH_VIEN
         },
         include: {
           kenh: true
@@ -329,14 +405,11 @@ const getJoinedChannels = async (
         where: {
           maNguoiDung: userId,
           trangThai: TrangThaiThanhVien.THAM_GIA,
-          kenh: { ngayXoa: null }
+          kenh: { ngayXoa: null },
+          vaiTro: VaiTroKenh.THANH_VIEN
         }
       })
     ]);
-
-    if (!channels || channels.length === 0) {
-      return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy kênh nào.');
-    }
 
     const formattedChannels = channels.map(member => ({
       ...member.kenh,
@@ -388,10 +461,6 @@ const getPendingJoinRequests = async (
         }
       })
     ]);
-
-    if (!channels || channels.length === 0) {
-      return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy yêu cầu tham gia nào.');
-    }
 
     const formattedChannels = channels.map(member => member.kenh);
 
@@ -666,7 +735,9 @@ export default {
   createChannel,
   updateChannel,
   deleteChannel,
+  getChannelById,
   getChannelList,
+  getAllChannelList,
   requestToJoinChannel,
   addUsersToChannel,
   removeUsersFromChannel,

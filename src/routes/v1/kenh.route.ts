@@ -25,5 +25,6 @@ router.post('/:maKenh/roi', auth(), kenhController.leaveChannel); // Rời kênh
 
 router.get('/daThamGia', auth(), kenhController.getJoinedChannels); // Lấy danh sách kênh đã tham gia
 router.get('/yeuCauThamGia', auth(), kenhController.getPendingJoinRequests); // Lấy danh sách kênh đã gửi yêu cầu
+router.get('/:maKenh', auth(), kenhController.getChannelById);
 
 export default router;
