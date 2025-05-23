@@ -1,3 +1,4 @@
+// src\routes\v1\kenh.route.ts
 import express from 'express';
 import kenhController from '../../controllers/kenh.controller';
 import auth from '../../middlewares/auth';

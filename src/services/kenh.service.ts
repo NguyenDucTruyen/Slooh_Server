@@ -1,3 +1,4 @@
+// src\services\kenh.service.ts
 import { PrismaClient, TrangThai, TrangThaiThanhVien, VaiTroKenh } from '@prisma/client';
 import httpStatus from 'http-status';
 import { createErrorResponse, createSuccessResponse } from '../helpers/CreateResponse.helper';
@@ -327,7 +328,7 @@ const searchChannelUsers = async (
       return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy người dùng nào.');
     }
 
-    const formattedUsers = users.map(member => ({
+    const formattedUsers = users.map((member) => ({
       email: member.nguoiDung.email,
       hoTen: member.nguoiDung.hoTen,
       anhDaiDien: member.nguoiDung.anhDaiDien,
@@ -348,10 +349,7 @@ const searchChannelUsers = async (
 };
 
 // Hủy yêu cầu tham gia kênh
-const cancelJoinRequest = async (
-  channelId: string,
-  userId: string
-): Promise<ServiceResponse> => {
+const cancelJoinRequest = async (channelId: string, userId: string): Promise<ServiceResponse> => {
   try {
     const existingRequest = await prisma.tHANHVIENKENH.findUnique({
       where: {
@@ -372,10 +370,7 @@ const cancelJoinRequest = async (
     return createSuccessResponse(httpStatus.OK, 'Hủy yêu cầu tham gia thành công.');
   } catch (error) {
     console.error('Error canceling join request:', error);
-    return createErrorResponse(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'Không thể hủy yêu cầu tham gia'
-    );
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể hủy yêu cầu tham gia');
   }
 };
 
@@ -411,9 +406,9 @@ const getJoinedChannels = async (
       })
     ]);
 
-    const formattedChannels = channels.map(member => ({
+    const formattedChannels = channels.map((member) => ({
       ...member.kenh,
-      vaiTro: member.vaiTro,
+      vaiTro: member.vaiTro
     }));
 
     return createSuccessResponse(httpStatus.OK, 'Lấy danh sách kênh đang tham gia thành công.', {
@@ -462,7 +457,7 @@ const getPendingJoinRequests = async (
       })
     ]);
 
-    const formattedChannels = channels.map(member => member.kenh);
+    const formattedChannels = channels.map((member) => member.kenh);
 
     return createSuccessResponse(httpStatus.OK, 'Lấy danh sách yêu cầu tham gia thành công.', {
       channels: formattedChannels,
@@ -490,7 +485,10 @@ const leaveChannel = async (channelId: string, userId: string): Promise<ServiceR
     });
 
     if (!member) {
-      return createErrorResponse(httpStatus.NOT_FOUND, 'Bạn không phải là thành viên của kênh này.');
+      return createErrorResponse(
+        httpStatus.NOT_FOUND,
+        'Bạn không phải là thành viên của kênh này.'
+      );
     }
 
     if (member.vaiTro === VaiTroKenh.CHU_KENH) {
@@ -732,6 +730,7 @@ const rejectJoinRequests = async (
 };
 
 export default {
+  checkIsChannelOwner,
   createChannel,
   updateChannel,
   deleteChannel,

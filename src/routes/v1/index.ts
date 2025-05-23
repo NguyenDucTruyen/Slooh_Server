@@ -3,6 +3,7 @@ import config from '../../config/config';
 import authRoute from './auth.route';
 import docsRoute from './docs.route';
 import kenhRoute from './kenh.route';
+import phongRoute from './phong.route';
 import userRoute from './user.route';
 
 const router = express.Router();
@@ -19,13 +20,17 @@ const defaultRoutes = [
   {
     path: '/kenh',
     route: kenhRoute
+  },
+  {
+    path: '/phong',
+    route: phongRoute
   }
 ];
 
 const devRoutes = [
   // routes available only in development mode
   {
-    path: '/docs',
+    path: '/docs',  
     route: docsRoute
   }
 ];

@@ -1,86 +1,86 @@
-  // This is your Prisma schema file,
-  // learn more about it in the docs: https://pris.ly/d/prisma-schema
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// prisma\schema.prisma
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
 
-  generator client {
-    provider      = "prisma-client-js"
-    binaryTargets = ["native", "windows", "linux-musl", "linux-musl-openssl-3.0.x"]
-  }
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
-  datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
-  }
+// Schema
 
-  // Schema
+enum Quyen {
+  NGUOI_DUNG
+  ADMIN
+}
 
-  enum Quyen {
-    NGUOI_DUNG
-    ADMIN
-  }
+enum TrangThai {
+  HOAT_DONG
+  KHOA
+}
 
-  enum TrangThai {
-    HOAT_DONG
-    KHOA
-  }
+enum LoaiMa {
+  ACCESS
+  REFRESH
+  RESET_PASSWORD
+  VERIFY_EMAIL
+}
 
-  enum LoaiMa {
-    ACCESS
-    REFRESH
-    RESET_PASSWORD
-    VERIFY_EMAIL
-  }
+enum LoaiOAuth {
+  GOOGLE
+  GITHUB
+}
 
-  enum LoaiOAuth {
-    GOOGLE
-    GITHUB
-  }
+enum VaiTroKenh {
+  THANH_VIEN
+  CHU_KENH
+}
 
-  enum VaiTroKenh {
-    THANH_VIEN
-    CHU_KENH
-  }
+enum TrangThaiThanhVien {
+  YEU_CAU
+  THAM_GIA
+}
 
-  enum TrangThaiThanhVien {
-    YEU_CAU
-    THAM_GIA
-  }
+enum HoatDongPhong {
+  OFFLINE
+  WAITING
+  PRESENTING
+}
 
-  enum HoatDongPhong {
-    OFFLINE
-    WAITING
-    PRESENTING
-  }
+enum LoaiTrang {
+  NOI_DUNG
+  CAU_HOI
+}
 
-  enum LoaiTrang {
-    NOI_DUNG
-    CAU_HOI
-  }
+enum CachTrinhBay {
+  CO_BAN
+  TIEU_DE_LON
+  HAI_COT
+  DANH_SACH
+}
 
-  enum CachTrinhBay {
-    CO_BAN
-    TIEU_DE_LON
-    HAI_COT
-    DANH_SACH
-  }
+enum Diem {
+  BINH_THUONG
+  GAP_DOI
+  KHONG_DIEM
+}
 
-  enum Diem {
-    BINH_THUONG
-    GAP_DOI
-    KHONG_DIEM
-  }
+enum LoaiCauTraLoi {
+  SINGLE_SELECT
+  MULTI_SELECT
+  TRUE_FALSE
+}
 
-  enum LoaiCauHoi {
-    SINGLE_SELECT
-    MULTI_SELECT
-    TRUE_FALSE
-  }
+enum VaiTroPhien {
+  THANH_VIEN
+  CHU_PHIEN
+}
 
-  enum VaiTroPhien {
-    THANH_VIEN
-    CHU_PHIEN
-  }
-
-  model NGUOIDUNG {
+model NGUOIDUNG {
   maNguoiDung    String                     @id @default(uuid())
   hoTen          String
   email          String                     @unique
@@ -94,27 +94,25 @@
   mas            MA[]
   oauth          OAUTH?                     @relation("NguoiDungOauth") // One-to-one relation
   kenh           THANHVIENKENH[]
-  phong          PHONG[]
   thanhVienPhien THANHVIENPHIENTRINHCHIEU[]
   baoCao         BAOCAO[]
 }
 
+model MA {
+  maMa        String   @id @default(uuid())
+  maNguoiDung String
+  loaiMa      LoaiMa
+  ma          String
+  hetHan      DateTime
+  daSuDung    Boolean  @default(false)
+  ngayTao     DateTime @default(now())
 
-  model MA {
-    maMa     String    @id @default(uuid())
-    maNguoiDung String
-    loaiMa   LoaiMa
-    ma       String
-    hetHan      DateTime
-    daSuDung    Boolean   @default(false)
-    ngayTao     DateTime  @default(now())
+  nguoiDung NGUOIDUNG @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
+}
 
-    nguoiDung NGUOIDUNG @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
-  }
-
-  model OAUTH {
+model OAUTH {
   maOauth     String    @id @default(uuid())
-  maNguoiDung String    @unique                // Enforces 1-1 relationship
+  maNguoiDung String    @unique // Enforces 1-1 relationship
   loaiOAuth   LoaiOAuth
   oauthId     String    @unique
   ma          String
@@ -123,125 +121,122 @@
   nguoiDung NGUOIDUNG @relation("NguoiDungOauth", fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
 }
 
+model KENH {
+  maKenh    String    @id @default(uuid())
+  tenKenh   String
+  trangThai TrangThai @default(HOAT_DONG)
+  ngayTao   DateTime  @default(now())
+  ngayXoa   DateTime?
 
-  model KENH {
-    maKenh    String    @id @default(uuid())
-    tenKenh   String
-    trangThai TrangThai @default(HOAT_DONG)
-    ngayTao   DateTime  @default(now())
-    ngayXoa   DateTime?
+  thanhVien THANHVIENKENH[]
+  phong     PHONG[]
+}
 
-    thanhVien THANHVIENKENH[]
-    phong     PHONG[]
-  }
+model THANHVIENKENH {
+  maThanhVienKenh String             @id @default(uuid())
+  maNguoiDung     String
+  maKenh          String
+  vaiTro          VaiTroKenh         @default(THANH_VIEN)
+  trangThai       TrangThaiThanhVien @default(YEU_CAU)
+  ngayTao         DateTime           @default(now())
 
-  model THANHVIENKENH {
-    maThanhVienKenh String             @id @default(uuid())
-    maNguoiDung     String
-    maKenh          String
-    vaiTro          VaiTroKenh         @default(THANH_VIEN)
-    trangThai       TrangThaiThanhVien @default(YEU_CAU)
-    ngayTao         DateTime           @default(now())
+  nguoiDung NGUOIDUNG @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
+  kenh      KENH      @relation(fields: [maKenh], references: [maKenh], onDelete: Cascade)
 
-    nguoiDung NGUOIDUNG @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
-    kenh      KENH      @relation(fields: [maKenh], references: [maKenh], onDelete: Cascade)
+  @@unique([maNguoiDung, maKenh])
+}
 
-    @@unique([maNguoiDung, maKenh])
-  }
+model PHONG {
+  maPhong    String            @id @default(uuid())
+  tenPhong   String
+  moTa       String?
+  maKenh     String?
+  trangThai  TrangThai         @default(HOAT_DONG)
+  hoatDong   HoatDongPhong     @default(OFFLINE)
+  ngayTao    DateTime          @default(now())
+  ngayXoa    DateTime?
+  kenh       KENH?             @relation(fields: [maKenh], references: [maKenh], onDelete: SetNull)
+  trangs     TRANG[]
+  phienTrinh PHIENTRINHCHIEU[]
+  baoCao     BAOCAO[]
+}
 
-  model PHONG {
-    maPhong    String        @id @default(uuid())
-    tenPhong   String
-    maKenh     String?
-    maChuPhong String
-    trangThai  TrangThai     @default(HOAT_DONG)
-    hoatDong   HoatDongPhong @default(OFFLINE)
-    ngayTao    DateTime      @default(now())
-    ngayXoa    DateTime?
+model TRANG {
+  maTrang         String         @id @default(uuid())
+  maPhong         String
+  loaiTrang       LoaiTrang
+  thuTu           Int
+  tieuDe          String
+  hinhAnh         String?
+  video           String?
+  hinhNen         String?
+  cachTrinhBay    CachTrinhBay?
+  noiDung         String?
+  thoiGianGioiHan Int?
+  diem            Diem           @default(BINH_THUONG)
+  loaiCauTraLoi   LoaiCauTraLoi?
 
-    kenh       KENH?             @relation(fields: [maKenh], references: [maKenh], onDelete: SetNull)
-    chuPhong   NGUOIDUNG         @relation(fields: [maChuPhong], references: [maNguoiDung], onDelete: Cascade)
-    trangs     TRANG[]
-    phienTrinh PHIENTRINHCHIEU[]
-    baoCao     BAOCAO[]
-  }
+  phong   PHONG     @relation(fields: [maPhong], references: [maPhong], onDelete: Cascade)
+  luaChon LUACHON[]
 
-  model TRANG {
-    maTrang         String        @id @default(uuid())
-    maPhong         String
-    loaiTrang       LoaiTrang
-    thuTu           Int
-    tieuDe          String
-    hinhAnh         String?
-    video           String?
-    hinhNen         String?
-    cachTrinhBay    CachTrinhBay?
-    noiDung         String?
-    thoiGianGioiHan Int?
-    diem            Diem          @default(BINH_THUONG)
-    loaiCauHoi      LoaiCauHoi?
+  @@unique([maPhong, thuTu])
+}
 
-    phong     PHONG       @relation(fields: [maPhong], references: [maPhong], onDelete: Cascade)
-    luaChon   LUACHON[]
+model LUACHON {
+  maLuaChon String  @id @default(uuid())
+  maTrang   String
+  noiDung   String
+  ketQua    Boolean @default(false)
 
-    @@unique([maPhong, thuTu])
-  }
+  trang     TRANG       @relation(fields: [maTrang], references: [maTrang], onDelete: Cascade)
+  CAUTRALOI CAUTRALOI[]
+}
 
-  model LUACHON {
-    maLuaChon String  @id @default(uuid())
-    maTrang   String
-    noiDung   String
-    ketQua    Boolean @default(false)
+model PHIENTRINHCHIEU {
+  maPhien String   @id @default(uuid())
+  maPhong String
+  maPin   String   @unique
+  ngayTao DateTime @default(now())
 
-    trang     TRANG       @relation(fields: [maTrang], references: [maTrang], onDelete: Cascade)
-    CAUTRALOI CAUTRALOI[]
-  }
+  phong     PHONG                      @relation(fields: [maPhong], references: [maPhong], onDelete: Cascade)
+  thanhVien THANHVIENPHIENTRINHCHIEU[]
+}
 
-  model PHIENTRINHCHIEU {
-    maPhien String   @id @default(uuid())
-    maPhong String
-    maPin   String   @unique
-    ngayTao DateTime @default(now())
+model THANHVIENPHIENTRINHCHIEU {
+  maThanhVienPhien String      @id @default(uuid())
+  maNguoiDung      String?
+  maPhien          String
+  tenThanhVien     String
+  anhDaiDien       String?
+  vaiTro           VaiTroPhien @default(THANH_VIEN)
+  tongDiem         Int         @default(0)
 
-    phong     PHONG                      @relation(fields: [maPhong], references: [maPhong], onDelete: Cascade)
-    thanhVien THANHVIENPHIENTRINHCHIEU[]
-  }
+  nguoiDung NGUOIDUNG?      @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: SetNull)
+  phien     PHIENTRINHCHIEU @relation(fields: [maPhien], references: [maPhien], onDelete: Cascade)
+  CAUTRALOI CAUTRALOI[]
 
-  model THANHVIENPHIENTRINHCHIEU {
-    maThanhVienPhien String      @id @default(uuid())
-    maNguoiDung      String?
-    maPhien          String
-    tenThanhVien     String
-    anhDaiDien       String?
-    vaiTro           VaiTroPhien @default(THANH_VIEN)
-    tongDiem         Int         @default(0)
+  @@unique([maPhien, maNguoiDung])
+}
 
-    nguoiDung NGUOIDUNG?      @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: SetNull)
-    phien     PHIENTRINHCHIEU @relation(fields: [maPhien], references: [maPhien], onDelete: Cascade)
-    CAUTRALOI CAUTRALOI[]
+model CAUTRALOI {
+  maCauTraLoi      String                   @id @default(uuid())
+  maThanhVienPhien String
+  maLuaChon        String
+  thoiGian         Int
+  thanhVien        THANHVIENPHIENTRINHCHIEU @relation(fields: [maThanhVienPhien], references: [maThanhVienPhien], onDelete: Cascade)
+  luaChon          LUACHON                  @relation(fields: [maLuaChon], references: [maLuaChon], onDelete: Cascade)
 
-    @@unique([maPhien, maNguoiDung])
-  }
+  @@unique([maThanhVienPhien, maLuaChon])
+}
 
-  model CAUTRALOI {
-    maCauTraLoi      String                   @id @default(uuid())
-    maThanhVienPhien String
-    maLuaChon        String
-    thoiGian         Int
-    thanhVien        THANHVIENPHIENTRINHCHIEU @relation(fields: [maThanhVienPhien], references: [maThanhVienPhien], onDelete: Cascade)
-    luaChon          LUACHON                  @relation(fields: [maLuaChon], references: [maLuaChon], onDelete: Cascade)
+model BAOCAO {
+  maBaoCao    String   @id @default(uuid())
+  maNguoiDung String
+  maPhong     String
+  noiDung     String
+  hinhAnh     String?
+  ngayTao     DateTime @default(now())
 
-    @@unique([maThanhVienPhien, maLuaChon])
-  }
-
-  model BAOCAO {
-    maBaoCao    String   @id @default(uuid())
-    maNguoiDung String
-    maPhong     String
-    noiDung     String
-    hinhAnh     String?
-    ngayTao     DateTime @default(now())
-
-    nguoiDung NGUOIDUNG @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
-    phong     PHONG     @relation(fields: [maPhong], references: [maPhong], onDelete: Cascade)
-  }
+  nguoiDung NGUOIDUNG @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
+  phong     PHONG     @relation(fields: [maPhong], references: [maPhong], onDelete: Cascade)
+}

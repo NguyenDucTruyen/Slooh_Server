@@ -1,3 +1,4 @@
+// src\controllers\kenh.controller.ts
 import { NGUOIDUNG as User } from '@prisma/client';
 import kenhService from '../services/kenh.service';
 import sendResponse from '../utils/ApiResponse.util';
@@ -43,7 +44,7 @@ const getChannelList = catchAsync(async (req, res) => {
   const user = req.user as User;
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
-  const result = await kenhService.getChannelList(user.maNguoiDung,page, limit);
+  const result = await kenhService.getChannelList(user.maNguoiDung, page, limit);
   sendResponse(res, result.statusCode, result.success, result.message, result.data);
 });
 
