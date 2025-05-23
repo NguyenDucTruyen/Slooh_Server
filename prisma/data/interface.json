@@ -1,0 +1,94 @@
+{
+    "id": "5ffba0c9-ec5f-424f-9936-9ea648b70769",
+    "kahoot": {
+        "uuid": "5ffba0c9-ec5f-424f-9936-9ea648b70769",
+        "language": "English",
+        "creator": "0b28d5b6-5e76-4656-a1c0-7aa8c9542264",
+        "creator_username": "Truyen_147",
+        "compatibilityLevel": 6,
+        "creator_primary_usage": "student",
+        "folderId": "0b28d5b6-5e76-4656-a1c0-7aa8c9542264",
+        "visibility": 0,
+        "title": "Bun",
+        "description": "",
+        "quizType": "quiz",
+        "cover": "",
+        "lobby_video": {
+            "youtube": {
+                "id": "",
+                "startTime": 0,
+                "endTime": 0,
+                "service": "youtube",
+                "fullUrl": ""
+            }
+        },
+        "questions": [
+            {
+                "type": "content",
+                "title": "Lịch sử",
+                "description": "Hôm nay chúng ta ôn lại kiến thức lịch sử nhé !!!",
+                "layout": "TOP_IMAGE",
+                "hasReactions": false,
+                "resources": "",
+                "video": {
+                    "startTime": 0,
+                    "endTime": 0,
+                    "service": "youtube",
+                    "fullUrl": ""
+                },
+                "questionFormat": 0,
+                "media": []
+            },
+            {
+                "type": "quiz",
+                "question": "Câu hỏi: Hôm nay là ngày gì",
+                "time": 20000,
+                "pointsMultiplier": 1,
+                "choices": [],
+                "layout": "CLASSIC",
+                "resources": "",
+                "video": {
+                    "startTime": 0,
+                    "endTime": 0,
+                    "service": "youtube",
+                    "fullUrl": ""
+                },
+                "questionFormat": 0,
+                "media": []
+            }
+        ],
+        "contentTags": {
+            "curriculumCodes": []
+        },
+        "metadata": {
+            "moderation": {
+                "flaggedTimestamp": 0,
+                "timestampResolution": 0
+            },
+            "access": {
+                "groupRead": [],
+                "folderGroupIds": []
+            },
+            "duplicationProtection": false,
+            "lastEdit": {
+                "editorUserId": "0b28d5b6-5e76-4656-a1c0-7aa8c9542264",
+                "editorUsername": "Truyen_147",
+                "editTimestamp": 1746628585340
+            }
+        },
+        "resources": "",
+        "slug": "bun",
+        "inventoryItemIds": [],
+        "isValid": false,
+        "playAsGuest": false,
+        "type": "quiz",
+        "created": 1746627381601,
+        "modified": 0
+    },
+    "kahootExists": true,
+    "targetFolderId": "0b28d5b6-5e76-4656-a1c0-7aa8c9542264",
+    "type": "quiz_draft",
+    "created": 1746628585322,
+    "modified": 1746628585341
+}
+1
