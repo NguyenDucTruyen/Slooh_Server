@@ -56,13 +56,6 @@ enum LoaiTrang {
   CAU_HOI
 }
 
-enum CachTrinhBay {
-  CO_BAN
-  TIEU_DE_LON
-  HAI_COT
-  DANH_SACH
-}
-
 enum Diem {
   BINH_THUONG
   GAP_DOI
@@ -170,7 +163,7 @@ model TRANG {
   hinhAnh         String?
   video           String?
   hinhNen         String?
-  cachTrinhBay    CachTrinhBay?
+  cachTrinhBay    String?
   noiDung         String?
   thoiGianGioiHan Int?
   diem            Diem           @default(BINH_THUONG)

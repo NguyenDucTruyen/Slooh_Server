@@ -1,6 +1,5 @@
 // src\repositories\phong.repository.ts
 import {
-  CachTrinhBay,
   Diem,
   HoatDongPhong,
   LoaiCauTraLoi,
@@ -77,7 +76,7 @@ const updateRoom = async (roomId: string, roomData: any) => {
             hinhAnh: trangData.hinhAnh,
             video: trangData.video,
             hinhNen: trangData.hinhNen,
-            cachTrinhBay: trangData.cachTrinhBay as CachTrinhBay,
+            cachTrinhBay: trangData.cachTrinhBay || '',
             noiDung: trangData.noiDung,
             thoiGianGioiHan: trangData.thoiGianGioiHan,
             diem: (trangData.diem as Diem) || Diem.BINH_THUONG,

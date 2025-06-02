@@ -53,9 +53,7 @@ const updatePhongSchema = Joi.object({
           'string.uri': 'Background image must be a valid URL'
         }),
 
-        cachTrinhBay: Joi.string()
-          .valid('CO_BAN', 'TIEU_DE_LON', 'HAI_COT', 'DANH_SACH')
-          .allow(null),
+        cachTrinhBay: Joi.string().allow(null),
 
         noiDung: Joi.string().allow(null, '').max(5000).messages({
           'string.max': 'Content must not exceed 5000 characters'
