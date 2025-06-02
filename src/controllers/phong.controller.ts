@@ -13,11 +13,51 @@ const createRoom = catchAsync(async (req, res) => {
   sendResponse(res, result.statusCode, result.success, result.message, result.data);
 });
 
+// Create a public room (no channel required)
+const createPublicRoom = catchAsync(async (req, res) => {
+  const user = req.user as User;
+  const { tenPhong, moTa } = req.body;
+
+  const result = await phongService.createPublicRoom(tenPhong, moTa, user.maNguoiDung);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
 // Get room details by ID
 const getRoomById = catchAsync(async (req, res) => {
   const { maPhong } = req.params;
 
   const result = await phongService.getRoomDetails(maPhong);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
+// Get all rooms in a channel
+const getRoomsByChannel = catchAsync(async (req, res) => {
+  const user = req.user as User;
+  const { maKenh } = req.params;
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
+  const result = await phongService.getRoomsByChannel(maKenh, user.maNguoiDung, page, limit);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
+// Get all rooms owned by user (through their channels)
+const getRoomsOwnedByUser = catchAsync(async (req, res) => {
+  const user = req.user as User;
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
+  const result = await phongService.getRoomsOwnedByUser(user.maNguoiDung, page, limit);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
+// Get all public rooms
+const getPublicRooms = catchAsync(async (req, res) => {
+  const user = req.user as User;
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  console.log('Fetching public rooms for user:', user.maNguoiDung   );
+  const result = await phongService.getPublicRooms(user.maNguoiDung, page, limit);
   sendResponse(res, result.statusCode, result.success, result.message, result.data);
 });
 
@@ -33,6 +73,11 @@ const updateRoom = catchAsync(async (req, res) => {
 
 export default {
   createRoom,
+  createPublicRoom,
   getRoomById,
+  getRoomsByChannel,
+  getRoomsOwnedByUser,
+  getPublicRooms,
   updateRoom
 };
+//

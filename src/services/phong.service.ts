@@ -1,7 +1,9 @@
+// src/services/phong.service.ts
 import httpStatus from 'http-status';
 import { createErrorResponse, createSuccessResponse } from '../helpers/CreateResponse.helper';
 import { Phong } from '../interfaces/Phong.interface';
 import { ServiceResponse } from '../interfaces/ServiceResponse.interface';
+import kenhRepository from '../repositories/kenh.repository';
 import phongRepository from '../repositories/phong.repository';
 import kenhService from './kenh.service';
 
@@ -33,6 +35,31 @@ const createRoom = async (
   }
 };
 
+const createPublicRoom = async (
+  roomName: string,
+  description: string | undefined,
+  userId: string
+): Promise<ServiceResponse> => {
+  try {
+    if (!roomName || roomName.trim() === '') {
+      return createErrorResponse(httpStatus.BAD_REQUEST, 'Room name is required.');
+    }
+
+    // Check if public room with same name exists
+    const existingRoom = await phongRepository.findRoomByNameAndChannel(roomName, null);
+    if (existingRoom) {
+      return createErrorResponse(httpStatus.CONFLICT, 'Public room with this name already exists.');
+    }
+
+    const newRoom = await phongRepository.createPublicRoom(userId, roomName, description);
+
+    return createSuccessResponse(httpStatus.CREATED, 'Public room created successfully.', newRoom);
+  } catch (error) {
+    console.error('Create public room error:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to create public room.');
+  }
+};
+
 const getRoomDetails = async (roomId: string): Promise<ServiceResponse> => {
   try {
     console.log('Fetching room details for ID:', roomId);
@@ -44,6 +71,99 @@ const getRoomDetails = async (roomId: string): Promise<ServiceResponse> => {
     return createSuccessResponse(httpStatus.OK, 'Room details retrieved.', room);
   } catch (error) {
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve room.');
+  }
+};
+
+const getRoomsByChannel = async (
+  channelId: string,
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<ServiceResponse> => {
+  try {
+    // Check if channel exists
+    const channel = await kenhRepository.findChannelById(channelId);
+    if (!channel) {
+      return createErrorResponse(httpStatus.NOT_FOUND, 'Channel not found.');
+    }
+
+    // Check if user is a member of the channel
+    const member = await kenhRepository.findMemberByUserAndChannel(userId, channelId);
+    if (!member || member.trangThai !== 'THAM_GIA') {
+      return createErrorResponse(httpStatus.FORBIDDEN, 'You are not a member of this channel.');
+    }
+
+    const { rooms, total } = await phongRepository.getRoomsByChannelId(channelId, page, limit);
+
+    return createSuccessResponse(httpStatus.OK, 'Rooms retrieved successfully.', {
+      rooms,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (error) {
+    console.error('Get rooms by channel error:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve rooms.');
+  }
+};
+
+const getRoomsOwnedByUser = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<ServiceResponse> => {
+  try {
+    // Get all channels where user is owner
+    const ownedChannels = await kenhRepository.findChannelsOwnedByUser(userId);
+    const channelIds = ownedChannels.map((channel) => channel.maKenh);
+
+    if (channelIds.length === 0) {
+      return createSuccessResponse(httpStatus.OK, 'No rooms found.', {
+        rooms: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0
+      });
+    }
+
+    const { rooms, total } = await phongRepository.getRoomsOwnedByUser(channelIds, page, limit);
+
+    return createSuccessResponse(httpStatus.OK, 'Rooms retrieved successfully.', {
+      rooms,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (error) {
+    console.error('Get rooms owned by user error:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve rooms.');
+  }
+};
+
+const getPublicRooms = async (
+  maNguoiDung: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<ServiceResponse> => {
+  try {
+    const { rooms, total } = await phongRepository.getPublicRooms(maNguoiDung, page, limit);
+
+    return createSuccessResponse(httpStatus.OK, 'Public rooms retrieved successfully.', {
+      rooms,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (error) {
+    console.error('Get public rooms error:', error);
+    return createErrorResponse(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve public rooms.'
+    );
   }
 };
 
@@ -59,11 +179,20 @@ const updateRoom = async (
       return createErrorResponse(httpStatus.NOT_FOUND, 'Room not found.');
     }
 
-    // Check if user is owner of the channel
-    const isOwner = await kenhService.checkIsChannelOwner(existingRoom.maKenh!, userId);
-    if (!isOwner) {
-      return createErrorResponse(httpStatus.FORBIDDEN, 'You are not the owner of this channel.');
+    // Check ownership
+    const { isOwner, isPublic } = await phongRepository.checkRoomOwnership(roomId, userId);
+
+    if (!isPublic && !isOwner) {
+      return createErrorResponse(
+        httpStatus.FORBIDDEN,
+        'You do not have permission to update this room.'
+      );
     }
+
+    // For public rooms, might want to add additional checks (e.g., admin role)
+    // if (isPublic && user.quyen !== 'ADMIN') {
+    //   return createErrorResponse(httpStatus.FORBIDDEN, 'Only admins can update public rooms.');
+    // }
 
     // Validate room data
     const validationError = validateRoomData(roomData);
@@ -162,6 +291,10 @@ const transformRoomResponse = (room: any): Phong => {
 
 export default {
   createRoom,
+  createPublicRoom,
   getRoomDetails,
+  getRoomsByChannel,
+  getRoomsOwnedByUser,
+  getPublicRooms,
   updateRoom
 };

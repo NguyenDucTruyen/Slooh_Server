@@ -1,18 +1,18 @@
-FROM node:alpine
+FROM node:18-slim
 
-# Cài OpenSSL 3 thay vì OpenSSL 1.1
-RUN apk add --no-cache openssl openssl-dev
-
-RUN mkdir -p /usr/src/node-app && chown -R node:node /usr/src/node-app
+RUN apt-get update && apt-get install -y openssl
 
 WORKDIR /usr/src/node-app
 
 COPY package.json yarn.lock ./
+RUN yarn install
 
-USER node
+COPY . .
 
-RUN yarn install --pure-lockfile
+COPY .env .env 
 
-COPY --chown=node:node . .
+RUN npx prisma generate
 
 EXPOSE 3000
+
+CMD ["yarn", "dev"]

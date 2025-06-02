@@ -3,7 +3,7 @@
 // prisma\schema.prisma
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  binaryTargets = ["native", "windows", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -89,6 +89,7 @@ model NGUOIDUNG {
   kenh           THANHVIENKENH[]
   thanhVienPhien THANHVIENPHIENTRINHCHIEU[]
   baoCao         BAOCAO[]
+  PHONG          PHONG[]
 }
 
 model MA {
@@ -152,6 +153,8 @@ model PHONG {
   trangs     TRANG[]
   phienTrinh PHIENTRINHCHIEU[]
   baoCao     BAOCAO[]
+  maNguoiTao String?
+  nguoiTao   NGUOIDUNG?        @relation(fields: [maNguoiTao], references: [maNguoiDung])
 }
 
 model TRANG {
