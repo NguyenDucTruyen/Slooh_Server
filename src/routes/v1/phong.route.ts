@@ -7,17 +7,29 @@ import validateUpdatePhong from '../../middlewares/validateUpdatePhong';
 
 const router = express.Router();
 
-// Tạo phòng mới trong kênh
+// Get all public rooms (no auth required for public rooms)
+router.get('/public', auth(), phongController.getPublicRooms);
+
+// Get all rooms owned by the user (requires auth)
+router.get('/owned', auth(), phongController.getRoomsOwnedByUser);
+
+// Get all rooms in a specific channel
+router.get('/kenh/:maKenh', auth(), phongController.getRoomsByChannel);
+
+// Create a new room in a channel
 router.post('/', auth(), phongController.createRoom);
 
-// Lấy thông tin phòng theo ID
+// Create a public room (no channel required)
+router.post('/public', auth(), phongController.createPublicRoom);
+
+// Get room details by ID
 router.get('/:maPhong', auth(), phongController.getRoomById);
 
-// Cập nhật phòng (bao gồm trang và lựa chọn)
+// Update room (including pages and choices)
 router.put('/:maPhong', auth(), validateUpdatePhong, phongController.updateRoom);
 
-// Các route mở rộng trong tương lai có thể bao gồm:
-// router.delete('/:maPhong', auth(), phongController.deleteRoom);
-// router.get('/kenh/:maKenh', auth(), phongController.getRoomsInChannel);
+// Delete and clone routes
+router.delete('/:maPhong', auth(), phongController.deleteRoom);
+router.post('/:maPhong/clone', auth(), phongController.cloneRoom);
 
 export default router;

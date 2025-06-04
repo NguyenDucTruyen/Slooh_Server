@@ -1,22 +1,13 @@
-// src\services\kenh.service.ts
-import { PrismaClient, TrangThai, TrangThaiThanhVien, VaiTroKenh } from '@prisma/client';
+// src/services/kenh.service.ts
+import { TrangThaiThanhVien, VaiTroKenh } from '@prisma/client';
 import httpStatus from 'http-status';
 import { createErrorResponse, createSuccessResponse } from '../helpers/CreateResponse.helper';
 import { ServiceResponse } from '../interfaces/ServiceResponse.interface';
-
-const prisma = new PrismaClient();
+import kenhRepository from '../repositories/kenh.repository';
 
 // Kiểm tra quyền chủ kênh
 const checkIsChannelOwner = async (channelId: string, userId: string): Promise<boolean> => {
-  const member = await prisma.tHANHVIENKENH.findUnique({
-    where: {
-      maNguoiDung_maKenh: {
-        maNguoiDung: userId,
-        maKenh: channelId
-      }
-    }
-  });
-
+  const member = await kenhRepository.findMemberByUserAndChannel(userId, channelId);
   return member?.vaiTro === VaiTroKenh.CHU_KENH;
 };
 
@@ -53,19 +44,7 @@ const createChannel = async (channelName: string, userId: string): Promise<Servi
   if (validationError) return validationError;
 
   try {
-    const createdChannel = await prisma.kENH.create({
-      data: {
-        tenKenh: channelName,
-        thanhVien: {
-          create: {
-            maNguoiDung: userId,
-            vaiTro: VaiTroKenh.CHU_KENH,
-            trangThai: TrangThaiThanhVien.THAM_GIA
-          }
-        }
-      }
-    });
-
+    const createdChannel = await kenhRepository.createChannel(channelName, userId);
     return createSuccessResponse(httpStatus.CREATED, 'Tạo kênh thành công.', createdChannel);
   } catch (error) {
     console.error('Error creating channel:', error);
@@ -85,7 +64,7 @@ const updateChannel = async (
       return createErrorResponse(httpStatus.FORBIDDEN, 'Bạn không có quyền cập nhật kênh này.');
     }
 
-    const channel = await prisma.kENH.findUnique({ where: { maKenh: channelId } });
+    const channel = await kenhRepository.findChannelById(channelId);
 
     if (!channel) {
       return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy kênh.');
@@ -98,11 +77,7 @@ const updateChannel = async (
     const validationError = validateChannelName(channelName, channel.tenKenh);
     if (validationError) return validationError;
 
-    const updatedChannel = await prisma.kENH.update({
-      where: { maKenh: channelId },
-      data: { tenKenh: channelName }
-    });
-
+    const updatedChannel = await kenhRepository.updateChannel(channelId, channelName);
     return createSuccessResponse(httpStatus.OK, 'Cập nhật tên kênh thành công.', updatedChannel);
   } catch (error) {
     console.error('Error updating channel:', error);
@@ -113,7 +88,7 @@ const updateChannel = async (
 // Xóa mềm kênh
 const deleteChannel = async (channelId: string): Promise<ServiceResponse> => {
   try {
-    const channel = await prisma.kENH.findUnique({ where: { maKenh: channelId } });
+    const channel = await kenhRepository.findChannelById(channelId);
 
     if (!channel) {
       return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy kênh.');
@@ -123,14 +98,7 @@ const deleteChannel = async (channelId: string): Promise<ServiceResponse> => {
       return createErrorResponse(httpStatus.BAD_REQUEST, 'Kênh đã bị xóa.');
     }
 
-    const result = await prisma.kENH.update({
-      where: { maKenh: channelId },
-      data: {
-        trangThai: TrangThai.KHOA,
-        ngayXoa: new Date()
-      }
-    });
-
+    await kenhRepository.softDeleteChannel(channelId);
     return createSuccessResponse(httpStatus.OK, 'Xóa kênh thành công.');
   } catch (error) {
     console.error('Error deleting channel:', error);
@@ -141,14 +109,7 @@ const deleteChannel = async (channelId: string): Promise<ServiceResponse> => {
 // Lấy thông tin kênh theo ID
 const getChannelById = async (channelId: string): Promise<ServiceResponse> => {
   try {
-    const channel = await prisma.kENH.findUnique({
-      where: { maKenh: channelId },
-      include: {
-        thanhVien: {
-          include: { nguoiDung: true }
-        }
-      }
-    });
+    const channel = await kenhRepository.findChannelById(channelId);
 
     if (!channel) {
       return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy kênh.');
@@ -169,37 +130,7 @@ const getChannelList = async (
 ): Promise<ServiceResponse> => {
   try {
     const skip = (page - 1) * limit;
-    const [channels, total] = await Promise.all([
-      prisma.kENH.findMany({
-        where: {
-          ngayXoa: null,
-          thanhVien: {
-            some: {
-              maNguoiDung: userId,
-              vaiTro: VaiTroKenh.CHU_KENH
-            }
-          }
-        },
-        include: {
-          thanhVien: {
-            include: { nguoiDung: true }
-          }
-        },
-        skip,
-        take: limit
-      }),
-      prisma.kENH.count({
-        where: {
-          ngayXoa: null,
-          thanhVien: {
-            some: {
-              maNguoiDung: userId,
-              vaiTro: VaiTroKenh.CHU_KENH
-            }
-          }
-        }
-      })
-    ]);
+    const { channels, total } = await kenhRepository.findChannelsByOwner(userId, skip, limit);
 
     return createSuccessResponse(httpStatus.OK, 'Lấy danh sách kênh thành công.', {
       channels,
@@ -221,19 +152,7 @@ const getAllChannelList = async (
 ): Promise<ServiceResponse> => {
   try {
     const skip = (page - 1) * limit;
-    const [channels, total] = await Promise.all([
-      prisma.kENH.findMany({
-        where: { ngayXoa: null },
-        include: {
-          thanhVien: {
-            include: { nguoiDung: true }
-          }
-        },
-        skip,
-        take: limit
-      }),
-      prisma.kENH.count({ where: { ngayXoa: null } })
-    ]);
+    const { channels, total } = await kenhRepository.findAllChannels(skip, limit);
 
     if (!channels || channels.length === 0) {
       return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy kênh nào.');
@@ -251,11 +170,10 @@ const getAllChannelList = async (
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể lấy danh sách kênh');
   }
 };
+
 // Helper to find users by emails
 const findUsersByEmails = async (emails: string[]): Promise<ServiceResponse> => {
-  const users = await prisma.nGUOIDUNG.findMany({
-    where: { email: { in: emails } }
-  });
+  const users = await kenhRepository.findUsersByEmails(emails);
 
   if (users.length === 0) {
     return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy người dùng nào phù hợp.');
@@ -288,41 +206,12 @@ const searchChannelUsers = async (
 ): Promise<ServiceResponse> => {
   try {
     const skip = (page - 1) * limit;
-    const [users, total] = await Promise.all([
-      prisma.tHANHVIENKENH.findMany({
-        where: {
-          maKenh: channelId,
-          nguoiDung: {
-            OR: [
-              { email: { contains: searchText, mode: 'insensitive' } },
-              { hoTen: { contains: searchText, mode: 'insensitive' } }
-            ]
-          }
-        },
-        include: {
-          nguoiDung: {
-            select: {
-              email: true,
-              hoTen: true,
-              anhDaiDien: true
-            }
-          }
-        },
-        skip,
-        take: limit
-      }),
-      prisma.tHANHVIENKENH.count({
-        where: {
-          maKenh: channelId,
-          nguoiDung: {
-            OR: [
-              { email: { contains: searchText, mode: 'insensitive' } },
-              { hoTen: { contains: searchText, mode: 'insensitive' } }
-            ]
-          }
-        }
-      })
-    ]);
+    const { users, total } = await kenhRepository.searchChannelMembers(
+      channelId,
+      searchText,
+      skip,
+      limit
+    );
 
     if (!users || users.length === 0) {
       return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy người dùng nào.');
@@ -351,22 +240,13 @@ const searchChannelUsers = async (
 // Hủy yêu cầu tham gia kênh
 const cancelJoinRequest = async (channelId: string, userId: string): Promise<ServiceResponse> => {
   try {
-    const existingRequest = await prisma.tHANHVIENKENH.findUnique({
-      where: {
-        maNguoiDung_maKenh: { maNguoiDung: userId, maKenh: channelId }
-      }
-    });
+    const existingRequest = await kenhRepository.findMemberByUserAndChannel(userId, channelId);
 
     if (!existingRequest || existingRequest.trangThai !== TrangThaiThanhVien.YEU_CAU) {
       return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy yêu cầu tham gia.');
     }
 
-    await prisma.tHANHVIENKENH.delete({
-      where: {
-        maNguoiDung_maKenh: { maNguoiDung: userId, maKenh: channelId }
-      }
-    });
-
+    await kenhRepository.deleteMember(userId, channelId);
     return createSuccessResponse(httpStatus.OK, 'Hủy yêu cầu tham gia thành công.');
   } catch (error) {
     console.error('Error canceling join request:', error);
@@ -382,29 +262,7 @@ const getJoinedChannels = async (
 ): Promise<ServiceResponse> => {
   try {
     const skip = (page - 1) * limit;
-    const [channels, total] = await Promise.all([
-      prisma.tHANHVIENKENH.findMany({
-        where: {
-          maNguoiDung: userId,
-          trangThai: TrangThaiThanhVien.THAM_GIA,
-          kenh: { ngayXoa: null },
-          vaiTro: VaiTroKenh.THANH_VIEN
-        },
-        include: {
-          kenh: true
-        },
-        skip,
-        take: limit
-      }),
-      prisma.tHANHVIENKENH.count({
-        where: {
-          maNguoiDung: userId,
-          trangThai: TrangThaiThanhVien.THAM_GIA,
-          kenh: { ngayXoa: null },
-          vaiTro: VaiTroKenh.THANH_VIEN
-        }
-      })
-    ]);
+    const { channels, total } = await kenhRepository.findJoinedChannels(userId, skip, limit);
 
     const formattedChannels = channels.map((member) => ({
       ...member.kenh,
@@ -435,27 +293,7 @@ const getPendingJoinRequests = async (
 ): Promise<ServiceResponse> => {
   try {
     const skip = (page - 1) * limit;
-    const [channels, total] = await Promise.all([
-      prisma.tHANHVIENKENH.findMany({
-        where: {
-          maNguoiDung: userId,
-          trangThai: TrangThaiThanhVien.YEU_CAU,
-          kenh: { ngayXoa: null }
-        },
-        include: {
-          kenh: true
-        },
-        skip,
-        take: limit
-      }),
-      prisma.tHANHVIENKENH.count({
-        where: {
-          maNguoiDung: userId,
-          trangThai: TrangThaiThanhVien.YEU_CAU,
-          kenh: { ngayXoa: null }
-        }
-      })
-    ]);
+    const { channels, total } = await kenhRepository.findPendingRequests(userId, skip, limit);
 
     const formattedChannels = channels.map((member) => member.kenh);
 
@@ -478,11 +316,7 @@ const getPendingJoinRequests = async (
 // Rời kênh
 const leaveChannel = async (channelId: string, userId: string): Promise<ServiceResponse> => {
   try {
-    const member = await prisma.tHANHVIENKENH.findUnique({
-      where: {
-        maNguoiDung_maKenh: { maNguoiDung: userId, maKenh: channelId }
-      }
-    });
+    const member = await kenhRepository.findMemberByUserAndChannel(userId, channelId);
 
     if (!member) {
       return createErrorResponse(
@@ -495,12 +329,7 @@ const leaveChannel = async (channelId: string, userId: string): Promise<ServiceR
       return createErrorResponse(httpStatus.FORBIDDEN, 'Chủ kênh không thể rời kênh.');
     }
 
-    await prisma.tHANHVIENKENH.delete({
-      where: {
-        maNguoiDung_maKenh: { maNguoiDung: userId, maKenh: channelId }
-      }
-    });
-
+    await kenhRepository.deleteMember(userId, channelId);
     return createSuccessResponse(httpStatus.OK, 'Rời kênh thành công.');
   } catch (error) {
     console.error('Error leaving channel:', error);
@@ -533,10 +362,7 @@ const addUsersToChannel = async (
       trangThai: TrangThaiThanhVien.THAM_GIA
     }));
 
-    const result = await prisma.tHANHVIENKENH.createMany({
-      data,
-      skipDuplicates: true
-    });
+    const result = await kenhRepository.createManyMembers(data);
 
     if (result.count > 0) {
       return createSuccessResponse(httpStatus.OK, 'Thêm người dùng vào kênh thành công.', result);
@@ -569,16 +395,8 @@ const removeUsersFromChannel = async (
     if (!usersResponse.success) return usersResponse;
     const users = usersResponse.data;
 
-    const result = await Promise.all(
-      users.map((user: { maNguoiDung: any }) =>
-        prisma.tHANHVIENKENH.deleteMany({
-          where: {
-            maKenh: channelId,
-            maNguoiDung: user.maNguoiDung
-          }
-        })
-      )
-    );
+    const userIds = users.map((user: { maNguoiDung: any }) => user.maNguoiDung);
+    const result = await kenhRepository.deleteManyMembersByUserIds(channelId, userIds);
 
     if (result.length > 0) {
       return createSuccessResponse(httpStatus.OK, 'Xóa người dùng khỏi kênh thành công.', result);
@@ -603,11 +421,7 @@ const requestToJoinChannel = async (
   userId: string
 ): Promise<ServiceResponse> => {
   try {
-    const existingMember = await prisma.tHANHVIENKENH.findUnique({
-      where: {
-        maNguoiDung_maKenh: { maNguoiDung: userId, maKenh: channelId }
-      }
-    });
+    const existingMember = await kenhRepository.findMemberByUserAndChannel(userId, channelId);
 
     if (existingMember) {
       if (existingMember.trangThai === TrangThaiThanhVien.YEU_CAU) {
@@ -622,20 +436,12 @@ const requestToJoinChannel = async (
       }
     }
 
-    const result = await prisma.tHANHVIENKENH.upsert({
-      where: {
-        maNguoiDung_maKenh: { maNguoiDung: userId, maKenh: channelId }
-      },
-      update: {
-        trangThai: TrangThaiThanhVien.YEU_CAU
-      },
-      create: {
-        maKenh: channelId,
-        maNguoiDung: userId,
-        vaiTro: VaiTroKenh.THANH_VIEN,
-        trangThai: TrangThaiThanhVien.YEU_CAU
-      }
-    });
+    const result = await kenhRepository.createOrUpdateMember(
+      userId,
+      channelId,
+      VaiTroKenh.THANH_VIEN,
+      TrangThaiThanhVien.YEU_CAU
+    );
 
     return createSuccessResponse(httpStatus.OK, 'Gửi yêu cầu tham gia kênh thành công.', result);
   } catch (error) {
@@ -666,24 +472,18 @@ const processJoinRequests = async (
     if (!usersResponse.success) return usersResponse;
     const users = usersResponse.data;
 
-    const result = await Promise.all(
-      users.map((user: { maNguoiDung: any }) => {
-        if (action === 'accept') {
-          return prisma.tHANHVIENKENH.update({
-            where: {
-              maNguoiDung_maKenh: { maNguoiDung: user.maNguoiDung, maKenh: channelId }
-            },
-            data: { trangThai: TrangThaiThanhVien.THAM_GIA }
-          });
-        } else {
-          return prisma.tHANHVIENKENH.delete({
-            where: {
-              maNguoiDung_maKenh: { maNguoiDung: user.maNguoiDung, maKenh: channelId }
-            }
-          });
-        }
-      })
-    );
+    const userIds = users.map((user: { maNguoiDung: any }) => user.maNguoiDung);
+
+    let result;
+    if (action === 'accept') {
+      result = await kenhRepository.updateManyMembersStatus(
+        channelId,
+        userIds,
+        TrangThaiThanhVien.THAM_GIA
+      );
+    } else {
+      result = await kenhRepository.deleteManyMembersByUserIds(channelId, userIds);
+    }
 
     if (result.length > 0) {
       const message =
