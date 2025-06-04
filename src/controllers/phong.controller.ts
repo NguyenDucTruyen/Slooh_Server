@@ -56,7 +56,7 @@ const getPublicRooms = catchAsync(async (req, res) => {
   const user = req.user as User;
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
-  console.log('Fetching public rooms for user:', user.maNguoiDung   );
+  console.log('Fetching public rooms for user:', user.maNguoiDung);
   const result = await phongService.getPublicRooms(user.maNguoiDung, page, limit);
   sendResponse(res, result.statusCode, result.success, result.message, result.data);
 });
@@ -71,6 +71,25 @@ const updateRoom = catchAsync(async (req, res) => {
   sendResponse(res, result.statusCode, result.success, result.message, result.data);
 });
 
+// Delete a room
+const deleteRoom = catchAsync(async (req, res) => {
+  const user = req.user as User;
+  const { maPhong } = req.params;
+
+  const result = await phongService.deleteRoom(maPhong, user.maNguoiDung);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
+// Clone a room
+const cloneRoom = catchAsync(async (req, res) => {
+  const user = req.user as User;
+  const { maPhong } = req.params;
+  const { targetChannelId } = req.body; // If not provided, will create a public room
+
+  const result = await phongService.cloneRoom(maPhong, user.maNguoiDung, targetChannelId);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
 export default {
   createRoom,
   createPublicRoom,
@@ -78,6 +97,8 @@ export default {
   getRoomsByChannel,
   getRoomsOwnedByUser,
   getPublicRooms,
-  updateRoom
+  updateRoom,
+  deleteRoom,
+  cloneRoom
 };
 //

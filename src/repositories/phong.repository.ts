@@ -272,6 +272,96 @@ const updateRoom = async (roomId: string, roomData: any) => {
   });
 };
 
+const deleteRoom = async (roomId: string) => {
+  return prisma.pHONG.update({
+    where: { maPhong: roomId },
+    data: {
+      ngayXoa: new Date()
+    }
+  });
+};
+
+const cloneRoom = async (
+  sourceRoomId: string,
+  userId: string,
+  targetChannelId: string | null = null
+) => {
+  // Get the source room with all its data
+  const sourceRoom = await prisma.pHONG.findUnique({
+    where: { maPhong: sourceRoomId },
+    include: {
+      trangs: {
+        include: {
+          luaChon: true
+        }
+      }
+    }
+  });
+
+  if (!sourceRoom) {
+    throw new Error('Source room not found');
+  }
+
+  // Start a transaction to ensure all operations succeed or fail together
+  return prisma.$transaction(async (tx) => {
+    // Create new room with same basic data but with new channel if specified
+    const newRoom = await tx.pHONG.create({
+      data: {
+        tenPhong: `${sourceRoom.tenPhong} (Copy)`,
+        moTa: sourceRoom.moTa,
+        maKenh: targetChannelId, // Use the specified target channel
+        maNguoiTao: userId,
+        trangThai: TrangThai.HOAT_DONG,
+        hoatDong: sourceRoom.hoatDong
+      }
+    });
+
+    // Clone all pages and their choices
+    for (const trang of sourceRoom.trangs) {
+      const newTrang = await tx.tRANG.create({
+        data: {
+          maPhong: newRoom.maPhong,
+          loaiTrang: trang.loaiTrang,
+          thuTu: trang.thuTu,
+          tieuDe: trang.tieuDe,
+          hinhAnh: trang.hinhAnh,
+          video: trang.video,
+          hinhNen: trang.hinhNen,
+          cachTrinhBay: trang.cachTrinhBay,
+          noiDung: trang.noiDung,
+          thoiGianGioiHan: trang.thoiGianGioiHan,
+          diem: trang.diem,
+          loaiCauTraLoi: trang.loaiCauTraLoi
+        }
+      });
+
+      // Clone choices if they exist
+      if (trang.luaChon && trang.luaChon.length > 0) {
+        await tx.lUACHON.createMany({
+          data: trang.luaChon.map((luaChon) => ({
+            maTrang: newTrang.maTrang,
+            noiDung: luaChon.noiDung,
+            ketQua: luaChon.ketQua
+          }))
+        });
+      }
+    }
+
+    // Return the new room with all its data
+    return tx.pHONG.findUnique({
+      where: { maPhong: newRoom.maPhong },
+      include: {
+        trangs: {
+          orderBy: { thuTu: 'asc' },
+          include: {
+            luaChon: true
+          }
+        }
+      }
+    });
+  });
+};
+
 const checkRoomExists = async (roomId: string) => {
   const room = await prisma.pHONG.findUnique({
     where: { maPhong: roomId }
@@ -315,6 +405,8 @@ export default {
   getRoomsOwnedByUser,
   getPublicRooms,
   updateRoom,
+  deleteRoom,
+  cloneRoom,
   checkRoomExists,
   checkRoomOwnership
 };

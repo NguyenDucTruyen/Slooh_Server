@@ -213,6 +213,90 @@ const updateRoom = async (
   }
 };
 
+const deleteRoom = async (roomId: string, userId: string): Promise<ServiceResponse> => {
+  try {
+    // Check if room exists
+    const existingRoom = await phongRepository.getRoomById(roomId);
+    if (!existingRoom) {
+      return createErrorResponse(httpStatus.NOT_FOUND, 'Room not found.');
+    }
+
+    // Check if user has permission to delete
+    if (existingRoom.maKenh) {
+      const isOwner = await kenhService.checkIsChannelOwner(existingRoom.maKenh, userId);
+      if (!isOwner) {
+        return createErrorResponse(
+          httpStatus.FORBIDDEN,
+          'You are not authorized to delete this room.'
+        );
+      }
+    } else {
+      // For public rooms, check if user is the creator
+      if (existingRoom.maNguoiTao !== userId) {
+        return createErrorResponse(
+          httpStatus.FORBIDDEN,
+          'You are not authorized to delete this room.'
+        );
+      }
+    }
+
+    await phongRepository.deleteRoom(roomId);
+    return createSuccessResponse(httpStatus.OK, 'Room deleted successfully.');
+  } catch (error) {
+    console.error('Delete room error:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to delete room.');
+  }
+};
+
+const cloneRoom = async (
+  sourceRoomId: string,
+  userId: string,
+  targetChannelId?: string
+): Promise<ServiceResponse> => {
+  try {
+    // Check if source room exists
+    const sourceRoom = await phongRepository.getRoomById(sourceRoomId);
+    if (!sourceRoom) {
+      return createErrorResponse(httpStatus.NOT_FOUND, 'Source room not found.');
+    }
+
+    // If target channel is specified, check if user has permission
+    if (targetChannelId) {
+      const isChannelOwner = await kenhService.checkIsChannelOwner(targetChannelId, userId);
+      if (!isChannelOwner) {
+        return createErrorResponse(
+          httpStatus.FORBIDDEN,
+          'You must be the owner of the target channel.'
+        );
+      }
+    }
+
+    // If source room is in a channel, check if user has permission to view it
+    if (sourceRoom.maKenh) {
+      const isChannelMember = await kenhService.checkIsChannelOwner(sourceRoom.maKenh, userId);
+      if (!isChannelMember) {
+        return createErrorResponse(
+          httpStatus.FORBIDDEN,
+          'You do not have permission to clone this room.'
+        );
+      }
+    }
+
+    const clonedRoom = await phongRepository.cloneRoom(
+      sourceRoomId,
+      userId,
+      targetChannelId || null
+    );
+    return createSuccessResponse(httpStatus.CREATED, 'Room cloned successfully.', {
+      ...clonedRoom,
+      isPublic: !targetChannelId
+    });
+  } catch (error) {
+    console.error('Clone room error:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to clone room.');
+  }
+};
+
 const validateRoomData = (roomData: Phong): string | null => {
   // Validate room name
   if (!roomData.tenPhong || roomData.tenPhong.trim() === '') {
@@ -296,5 +380,7 @@ export default {
   getRoomsByChannel,
   getRoomsOwnedByUser,
   getPublicRooms,
-  updateRoom
+  updateRoom,
+  deleteRoom,
+  cloneRoom
 };

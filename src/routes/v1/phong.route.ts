@@ -28,9 +28,8 @@ router.get('/:maPhong', auth(), phongController.getRoomById);
 // Update room (including pages and choices)
 router.put('/:maPhong', auth(), validateUpdatePhong, phongController.updateRoom);
 
-// Future routes can include:
-// router.delete('/:maPhong', auth(), phongController.deleteRoom);
-// router.post('/:maPhong/clone', auth(), phongController.cloneRoom);
-// router.patch('/:maPhong/status', auth(), phongController.updateRoomStatus);
+// Delete and clone routes
+router.delete('/:maPhong', auth(), phongController.deleteRoom);
+router.post('/:maPhong/clone', auth(), phongController.cloneRoom);
 
 export default router;
