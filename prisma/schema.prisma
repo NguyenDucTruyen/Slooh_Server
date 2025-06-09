@@ -205,7 +205,7 @@ model THANHVIENPHIENTRINHCHIEU {
   maNguoiDung      String?
   maPhien          String
   tenThanhVien     String
-  anhDaiDien       String?
+  anhDaiDien       String?  
   vaiTro           VaiTroPhien @default(THANH_VIEN)
   tongDiem         Int         @default(0)
 

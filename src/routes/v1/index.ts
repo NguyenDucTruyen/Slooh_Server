@@ -1,8 +1,10 @@
+// src/routes/v1/index.ts
 import express from 'express';
 import config from '../../config/config';
 import authRoute from './auth.route';
 import docsRoute from './docs.route';
 import kenhRoute from './kenh.route';
+import phienTrinhChieuRoute from './phienTrinhChieu.route';
 import phongRoute from './phong.route';
 import userRoute from './user.route';
 
@@ -24,13 +26,17 @@ const defaultRoutes = [
   {
     path: '/phong',
     route: phongRoute
+  },
+  {
+    path: '/phien',
+    route: phienTrinhChieuRoute
   }
 ];
 
 const devRoutes = [
   // routes available only in development mode
   {
-    path: '/docs',  
+    path: '/docs',
     route: docsRoute
   }
 ];

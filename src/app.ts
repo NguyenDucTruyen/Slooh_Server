@@ -1,16 +1,16 @@
-import express from 'express';
-import helmet from 'helmet';
 import compression from 'compression';
 import cors from 'cors';
-import passport from 'passport';
+import express from 'express';
+import helmet from 'helmet';
 import httpStatus from 'http-status';
+import passport from 'passport';
 import config from './config/config';
 import morgan from './config/morgan';
-import xss from './middlewares/xss';
-import { jwtStrategy, googleStrategy } from './config/passport';
-import { authLimiter } from './middlewares/rateLimiter';
-import routes from './routes/v1';
+import { googleStrategy, jwtStrategy } from './config/passport';
 import { errorConverter, errorHandler } from './middlewares/error';
+import { authLimiter } from './middlewares/rateLimiter';
+import xss from './middlewares/xss';
+import routes from './routes/v1';
 import ApiError from './utils/ApiError';
 
 const app = express();
@@ -21,7 +21,17 @@ if (config.env !== 'test') {
 }
 
 // set security HTTP headers
-app.use(helmet());
+app.use(
+  helmet({
+    // Allow WebSocket connections
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        connectSrc: ["'self'", 'ws://localhost:*', 'wss://localhost:*']
+      }
+    }
+  })
+);
 
 // parse json request body
 app.use(express.json());
@@ -35,9 +45,47 @@ app.use(xss());
 // gzip compression
 app.use(compression());
 
-// enable cors
-app.use(cors());
-app.options('*', cors());
+// enable cors with proper config for Socket.IO
+const corsOptions = {
+  origin: function (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+
+    // List of allowed origins
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:8080',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:8080',
+      'file://' // For local HTML files
+    ];
+
+    // Allow any localhost origin in development
+    if (config.env === 'development') {
+      if (
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin.startsWith('file://')
+      ) {
+        return callback(null, true);
+      }
+    }
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['X-Total-Count']
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // jwt,goole authentication
 app.use(passport.initialize());

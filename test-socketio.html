@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Test</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { margin: 5px; padding: 10px; }
+        #log { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace; }
+        .sent { color: blue; }
+        .received { color: green; }
+        .error { color: red; }
+        .status { background: #f0f0f0; padding: 5px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>Socket.IO Phiên Trình Chiếu Test</h1>
+    
+    <div class="status">
+        Status: <span id="status">Disconnected</span>
+    </div>
+    
+    <div>
+        <input id="token" placeholder="Access Token (optional)" style="width: 300px;">
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+    </div>
+    
+    <div style="margin-top: 20px;">
+        <h3>Host Actions:</h3>
+        <input id="roomId" placeholder="Room ID" value="6c43411c-165f-43ea-89aa-edbaa11ab998">
+        <button onclick="createSession()">Create Session</button>
+        <button onclick="showLeaderboard()">Show Leaderboard</button>
+        <button onclick="endSession()">End Session</button>
+        <div id="navigationButtons" style="margin-top: 10px;"></div>
+    </div>
+    
+    <div style="margin-top: 20px;">
+        <h3>Participant Actions:</h3>
+        <input id="pin" placeholder="PIN">
+        <input id="name" placeholder="Your Name" value="Test User">
+        <button onclick="joinSession()">Join Session</button>
+        <div id="questionArea" style="display: none; margin-top: 10px; padding: 10px; border: 1px solid #ddd;">
+            <h4>Current Question: <span id="currentQuestion">-</span></h4>
+            <div id="choices"></div>
+            <button onclick="submitAnswer()">Submit Selected Answer</button>
+        </div>
+    </div>
+    
+    <h3>Log:</h3>
+    <button onclick="clearLog()">Clear Log</button>
+    <div id="log"></div>
+
+    <script>
+        let socket = null;
+        let sessionData = null;
+        let currentPageIndex = 0;
+        let selectedChoiceId = null;
+        let questionStartTime = null;
+        
+        function updateStatus(status) {
+            document.getElementById('status').textContent = status;
+        }
+        
+        function log(message, type = 'received') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div class="${type}">[${time}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function connect() {
+            if (socket && socket.connected) {
+                log('Already connected!', 'error');
+                return;
+            }
+            
+            const token = document.getElementById('token').value;
+            const options = {
+                transports: ['polling', 'websocket'],
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000
+            };
+            
+            if (token) {
+                options.auth = { token };
+                log('Connecting with auth token...', 'sent');
+            } else {
+                log('Connecting without auth (anonymous)...', 'sent');
+            }
+            
+            // Use http:// not ws://
+            socket = io('http://localhost:3000', options);
+            
+            // Connection events
+            socket.on('connect', () => {
+                updateStatus('Connected');
+                log('✅ Connected! Socket ID: ' + socket.id);
+            });
+            
+            socket.on('disconnect', (reason) => {
+                updateStatus('Disconnected');
+                log('❌ Disconnected: ' + reason, 'error');
+            });
+            
+            socket.on('connect_error', (error) => {
+                updateStatus('Connection Error');
+                log('❌ Connection Error: ' + error.message, 'error');
+            });
+            
+            socket.on('error', (error) => {
+                log('❌ Error: ' + (error.message || JSON.stringify(error)), 'error');
+            });
+            
+            // Phien events
+            socket.on('phien:started', (data) => {
+                log('📢 Session started! PIN: ' + data.maPin);
+            });
+            
+            socket.on('phien:memberJoined', (data) => {
+                log('👤 Member joined: ' + data.tenThanhVien);
+            });
+            
+            socket.on('phien:memberLeft', (data) => {
+                log('👤 Member left: ' + data.maThanhVienPhien);
+            });
+            
+            socket.on('phien:navigated', (data) => {
+                log('📄 Navigated to page: ' + (data.trangIndex + 1));
+                currentPageIndex = data.trangIndex;
+                updateQuestionDisplay();
+            });
+            
+            socket.on('phien:questionStarted', (data) => {
+                log('❓ Question started on page ' + (data.trangIndex + 1));
+                questionStartTime = Date.now();
+                currentPageIndex = data.trangIndex;
+                updateQuestionDisplay();
+                document.getElementById('questionArea').style.display = 'block';
+            });
+            
+            socket.on('phien:answerSubmitted', (data) => {
+                log('✍️ Answer submitted by: ' + data.maThanhVienPhien);
+            });
+            
+            socket.on('phien:leaderboard', (data) => {
+                log('🏆 Leaderboard: ' + JSON.stringify(data));
+            });
+            
+            socket.on('phien:ended', (data) => {
+                log('🏁 Session ended!');
+                if (data.finalLeaderboard) {
+                    log('Final results: ' + JSON.stringify(data.finalLeaderboard));
+                }
+                document.getElementById('questionArea').style.display = 'none';
+            });
+        }
+        
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                updateStatus('Disconnected');
+                log('Disconnected manually', 'sent');
+            }
+        }
+        
+        function createSession() {
+            if (!socket || !socket.connected) {
+                log('⚠️ Not connected!', 'error');
+                return;
+            }
+            
+            const roomId = document.getElementById('roomId').value;
+            log('Creating session for room: ' + roomId, 'sent');
+            
+            socket.emit('phien:create', { maPhong: roomId }, (response) => {
+                if (response.success) {
+                    log('✅ Session created! PIN: ' + response.data.maPin);
+                    document.getElementById('pin').value = response.data.maPin;
+                    sessionData = response.data;
+                    
+                    // Generate navigation buttons based on pages
+                    const navDiv = document.getElementById('navigationButtons');
+                    navDiv.innerHTML = '<strong>Navigate to:</strong> ';
+                    
+                    response.data.phong.trangs.forEach((trang, index) => {
+                        const btn = document.createElement('button');
+                        btn.textContent = `Page ${index + 1} (${trang.loaiTrang})`;
+                        btn.onclick = () => navigate(index);
+                        btn.style.marginRight = '5px';
+                        navDiv.appendChild(btn);
+                        
+                        if (trang.loaiTrang === 'CAU_HOI') {
+                            const startBtn = document.createElement('button');
+                            startBtn.textContent = `Start Q${index + 1}`;
+                            startBtn.onclick = () => startQuestion(index);
+                            startBtn.style.marginRight = '5px';
+                            startBtn.style.backgroundColor = '#ffcccc';
+                            navDiv.appendChild(startBtn);
+                        }
+                    });
+                } else {
+                    log('❌ Error: ' + response.message, 'error');
+                }
+            });
+        }
+        
+        function showLeaderboard() {
+            if (!socket || !socket.connected) {
+                log('⚠️ Not connected!', 'error');
+                return;
+            }
+            
+            log('Requesting leaderboard...', 'sent');
+            socket.emit('phien:showLeaderboard');
+        }
+        
+        function endSession() {
+            if (!socket || !socket.connected) {
+                log('⚠️ Not connected!', 'error');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to end this session?')) {
+                log('Ending session...', 'sent');
+                socket.emit('phien:end', (response) => {
+                    if (response.success) {
+                        log('✅ Session ended successfully!');
+                        document.getElementById('navigationButtons').innerHTML = '';
+                        document.getElementById('questionArea').style.display = 'none';
+                    } else {
+                        log('❌ Error: ' + response.message, 'error');
+                    }
+                });
+            }
+        }
+        
+        function joinSession() {
+            if (!socket || !socket.connected) {
+                log('⚠️ Not connected!', 'error');
+                return;
+            }
+            
+            const pin = document.getElementById('pin').value;
+            const name = document.getElementById('name').value;
+            
+            log('Joining session with PIN: ' + pin, 'sent');
+            
+            socket.emit('phien:join', { maPin: pin, tenThanhVien: name }, (response) => {
+                if (response.success) {
+                    log('✅ Joined successfully! Room: ' + response.data.phong.tenPhong);
+                    sessionData = response.data;
+                    log('Room has ' + response.data.phong.trangs.length + ' pages');
+                    
+                    // Log available questions
+                    response.data.phong.trangs.forEach((trang, index) => {
+                        if (trang.loaiTrang === 'CAU_HOI') {
+                            log(`Page ${index + 1}: ${trang.tieuDe} (${trang.luaChon.length} choices)`);
+                        }
+                    });
+                } else {
+                    log('❌ Error: ' + response.message, 'error');
+                }
+            });
+        }
+        
+        function updateQuestionDisplay() {
+            if (!sessionData || !sessionData.phong || !sessionData.phong.trangs) return;
+            
+            const currentPage = sessionData.phong.trangs[currentPageIndex];
+            if (!currentPage) return;
+            
+            document.getElementById('currentQuestion').textContent = currentPage.tieuDe || 'No title';
+            
+            const choicesDiv = document.getElementById('choices');
+            choicesDiv.innerHTML = '';
+            
+            if (currentPage.loaiTrang === 'CAU_HOI' && currentPage.luaChon) {
+                currentPage.luaChon.forEach((choice, index) => {
+                    const label = document.createElement('label');
+                    label.style.display = 'block';
+                    label.style.margin = '5px';
+                    
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = 'answer';
+                    radio.value = choice.maLuaChon;
+                    radio.onchange = () => selectedChoiceId = choice.maLuaChon;
+                    
+                    label.appendChild(radio);
+                    label.appendChild(document.createTextNode(' ' + choice.noiDung));
+                    choicesDiv.appendChild(label);
+                });
+            } else {
+                choicesDiv.innerHTML = '<p>This is not a question page</p>';
+            }
+        }
+        
+        function navigate(pageIndex) {
+            if (!socket || !socket.connected) {
+                log('⚠️ Not connected!', 'error');
+                return;
+            }
+            
+            log('Navigating to page ' + (pageIndex + 1), 'sent');
+            socket.emit('phien:navigate', { trangIndex: pageIndex });
+        }
+        
+        function startQuestion(pageIndex) {
+            if (!socket || !socket.connected) {
+                log('⚠️ Not connected!', 'error');
+                return;
+            }
+            
+            log('Starting question on page ' + (pageIndex + 1), 'sent');
+            socket.emit('phien:startQuestion', { trangIndex: pageIndex });
+        }
+        
+        function submitAnswer() {
+            if (!socket || !socket.connected) {
+                log('⚠️ Not connected!', 'error');
+                return;
+            }
+            
+            if (!selectedChoiceId) {
+                log('⚠️ Please select an answer!', 'error');
+                return;
+            }
+            
+            const timeSpent = questionStartTime ? Math.floor((Date.now() - questionStartTime) / 1000) : 10;
+            
+            const answer = {
+                maLuaChon: selectedChoiceId,
+                thoiGian: timeSpent
+            };
+            
+            log('Submitting answer: ' + selectedChoiceId + ' (time: ' + timeSpent + 's)', 'sent');
+            socket.emit('phien:submitAnswer', answer, (response) => {
+                if (response.success) {
+                    log('✅ Answer submitted! Correct: ' + (response.data.correct ? 'YES ✓' : 'NO ✗'), 
+                        response.data.correct ? 'received' : 'error');
+                } else {
+                    log('❌ Error: ' + response.message, 'error');
+                }
+            });
+        }
+        
+        // Auto-connect on load (optional)
+        // window.onload = () => connect();
+    </script>
+</body>
+</html>

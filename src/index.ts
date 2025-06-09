@@ -1,20 +1,29 @@
-import { Server } from 'http';
+// src/index.ts
+import { createServer } from 'http';
 import app from './app';
 import prisma from './client';
 import config from './config/config';
 import logger from './config/logger';
+import SocketServer from './socket/socket.server';
 
-let server: Server;
+const httpServer = createServer(app);
+let socketServer: SocketServer; 
+
 prisma.$connect().then(() => {
   logger.info('Connected to SQL Database');
-  server = app.listen(config.port, () => {
+
+  // Initialize Socket.IO server
+  socketServer = new SocketServer(httpServer);
+  logger.info('Socket.IO server initialized');
+
+  httpServer.listen(config.port, () => {
     logger.info(`Listening to port ${config.port}`);
   });
 });
 
 const exitHandler = () => {
-  if (server) {
-    server.close(() => {
+  if (httpServer) {
+    httpServer.close(() => {
       logger.info('Server closed');
       process.exit(1);
     });
@@ -33,7 +42,7 @@ process.on('unhandledRejection', unexpectedErrorHandler);
 
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received');
-  if (server) {
-    server.close();
+  if (httpServer) {
+    httpServer.close();
   }
 });
