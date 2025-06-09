@@ -56,7 +56,6 @@ const getPublicRooms = catchAsync(async (req, res) => {
   const user = req.user as User;
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
-  console.log('Fetching public rooms for user:', user.maNguoiDung);
   const result = await phongService.getPublicRooms(user.maNguoiDung, page, limit);
   sendResponse(res, result.statusCode, result.success, result.message, result.data);
 });

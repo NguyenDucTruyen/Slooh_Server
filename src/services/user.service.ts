@@ -1,4 +1,4 @@
-import { NGUOIDUNG as User, Quyen as Role, TrangThai as Status, Prisma } from '@prisma/client';
+import { Prisma, Quyen as Role, TrangThai as Status, NGUOIDUNG as User } from '@prisma/client';
 import httpStatus from 'http-status';
 import prisma from '../client';
 import ApiError from '../utils/ApiError';
@@ -19,7 +19,7 @@ const createUser = async (
   quyen: Role = Role.NGUOI_DUNG
 ): Promise<User> => {
   if (await getUserByEmail(email)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Email đã tồn tại');
   }
   return prisma.nGUOIDUNG.create({
     data: {

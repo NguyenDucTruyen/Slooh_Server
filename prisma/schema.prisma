@@ -167,6 +167,8 @@ model TRANG {
   video           String?
   hinhNen         String?
   cachTrinhBay    String?
+  canLeTieuDe     String?
+  canLeNoiDung    String?
   noiDung         String?
   thoiGianGioiHan Int?
   diem            Diem           @default(BINH_THUONG)

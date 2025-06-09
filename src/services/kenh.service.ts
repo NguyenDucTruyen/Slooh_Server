@@ -47,7 +47,7 @@ const createChannel = async (channelName: string, userId: string): Promise<Servi
     const createdChannel = await kenhRepository.createChannel(channelName, userId);
     return createSuccessResponse(httpStatus.CREATED, 'Tạo kênh thành công.', createdChannel);
   } catch (error) {
-    console.error('Error creating channel:', error);
+    console.error('Lỗi khi tạo kênh:', error);
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể tạo kênh');
   }
 };
@@ -80,7 +80,7 @@ const updateChannel = async (
     const updatedChannel = await kenhRepository.updateChannel(channelId, channelName);
     return createSuccessResponse(httpStatus.OK, 'Cập nhật tên kênh thành công.', updatedChannel);
   } catch (error) {
-    console.error('Error updating channel:', error);
+    console.error('Lỗi khi cập nhật tên kênh:', error);
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể cập nhật tên kênh');
   }
 };
@@ -101,7 +101,7 @@ const deleteChannel = async (channelId: string): Promise<ServiceResponse> => {
     await kenhRepository.softDeleteChannel(channelId);
     return createSuccessResponse(httpStatus.OK, 'Xóa kênh thành công.');
   } catch (error) {
-    console.error('Error deleting channel:', error);
+    console.error('Lỗi khi xóa kênh:', error);
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể xóa kênh');
   }
 };
@@ -117,7 +117,7 @@ const getChannelById = async (channelId: string): Promise<ServiceResponse> => {
 
     return createSuccessResponse(httpStatus.OK, 'Lấy thông tin kênh thành công.', channel);
   } catch (error) {
-    console.error('Error getting channel by ID:', error);
+    console.error('Lỗi khi lấy thông tin kênh:', error);
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể lấy thông tin kênh');
   }
 };
@@ -140,7 +140,7 @@ const getChannelList = async (
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    console.error('Error getting channel list:', error);
+    console.error('Lỗi khi lấy danh sách kênh:', error);
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể lấy danh sách kênh');
   }
 };
@@ -166,7 +166,7 @@ const getAllChannelList = async (
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    console.error('Error getting channel list:', error);
+    console.error('Lỗi khi lấy danh sách kênh:', error);
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể lấy danh sách kênh');
   }
 };
@@ -232,7 +232,7 @@ const searchChannelUsers = async (
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    console.error('Error searching channel users:', error);
+    console.error('Lỗi khi tìm kiếm người dùng:', error);
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể tìm kiếm người dùng');
   }
 };
@@ -249,7 +249,7 @@ const cancelJoinRequest = async (channelId: string, userId: string): Promise<Ser
     await kenhRepository.deleteMember(userId, channelId);
     return createSuccessResponse(httpStatus.OK, 'Hủy yêu cầu tham gia thành công.');
   } catch (error) {
-    console.error('Error canceling join request:', error);
+    console.error('Lỗi khi hủy yêu cầu tham gia:', error);
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể hủy yêu cầu tham gia');
   }
 };
@@ -277,7 +277,7 @@ const getJoinedChannels = async (
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    console.error('Error getting joined channels:', error);
+    console.error('Lỗi khi lấy danh sách kênh đang tham gia:', error);
     return createErrorResponse(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Không thể lấy danh sách kênh đang tham gia'
@@ -305,7 +305,7 @@ const getPendingJoinRequests = async (
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    console.error('Error getting pending join requests:', error);
+    console.error('Lỗi khi lấy danh sách yêu cầu tham gia:', error);
     return createErrorResponse(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Không thể lấy danh sách yêu cầu tham gia'
@@ -332,7 +332,7 @@ const leaveChannel = async (channelId: string, userId: string): Promise<ServiceR
     await kenhRepository.deleteMember(userId, channelId);
     return createSuccessResponse(httpStatus.OK, 'Rời kênh thành công.');
   } catch (error) {
-    console.error('Error leaving channel:', error);
+    console.error('Lỗi khi rời kênh:', error);
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể rời kênh');
   }
 };
@@ -373,7 +373,7 @@ const addUsersToChannel = async (
       'Không thể thêm người dùng vào kênh.'
     );
   } catch (error) {
-    console.error('Error adding users to channel:', error);
+    console.error('Lỗi khi thêm người dùng vào kênh:', error);
     return createErrorResponse(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Không thể thêm người dùng vào kênh'
@@ -407,7 +407,7 @@ const removeUsersFromChannel = async (
       'Không thể xóa người dùng khỏi kênh.'
     );
   } catch (error) {
-    console.error('Error removing users from channel:', error);
+    console.error('Lỗi khi xóa người dùng khỏi kênh:', error);
     return createErrorResponse(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Không thể xóa người dùng khỏi kênh'
@@ -445,7 +445,7 @@ const requestToJoinChannel = async (
 
     return createSuccessResponse(httpStatus.OK, 'Gửi yêu cầu tham gia kênh thành công.', result);
   } catch (error) {
-    console.error('Error requesting to join channel:', error);
+    console.error('Lỗi khi gửi yêu cầu tham gia kênh:', error);
     return createErrorResponse(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Không thể gửi yêu cầu tham gia kênh'
@@ -501,7 +501,7 @@ const processJoinRequests = async (
 
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, errorMessage);
   } catch (error) {
-    console.error(`Error ${action === 'accept' ? 'accepting' : 'rejecting'} join requests:`, error);
+    console.error(`Lỗi khi ${action === 'accept' ? 'accepting' : 'rejecting'} yêu cầu tham gia:`, error);
     const errorMessage =
       action === 'accept'
         ? 'Không thể chấp nhận yêu cầu tham gia'

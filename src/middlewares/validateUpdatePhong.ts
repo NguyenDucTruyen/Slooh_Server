@@ -3,67 +3,75 @@
 import { NextFunction, Request, Response } from 'express';
 import Joi from 'joi';
 
-// Joi validation schema for update phong
+// Joi schema để kiểm tra dữ liệu cập nhật phòng
 const updatePhongSchema = Joi.object({
   tenPhong: Joi.string().trim().min(1).max(200).required().messages({
-    'string.empty': 'Room name is required',
-    'string.min': 'Room name must be at least 1 character',
-    'string.max': 'Room name must not exceed 200 characters',
-    'any.required': 'Room name is required'
+    'string.empty': 'Tên phòng là bắt buộc',
+    'string.min': 'Tên phòng phải có ít nhất 1 ký tự',
+    'string.max': 'Tên phòng không được vượt quá 200 ký tự',
+    'any.required': 'Tên phòng là bắt buộc'
   }),
 
   moTa: Joi.string().allow(null, '').max(1000).messages({
-    'string.max': 'Description must not exceed 1000 characters'
+    'string.max': 'Mô tả không được vượt quá 1000 ký tự'
   }),
 
   trangThai: Joi.string().valid('HOAT_DONG', 'KHOA').required().messages({
-    'any.only': 'Status must be either HOAT_DONG or KHOA',
-    'any.required': 'Status is required'
+    'any.only': 'Trạng thái phải là HOAT_DONG hoặc KHOA',
+    'any.required': 'Trạng thái là bắt buộc'
   }),
 
   hoatDong: Joi.string().valid('OFFLINE', 'WAITING', 'PRESENTING').required().messages({
-    'any.only': 'Activity status must be OFFLINE, WAITING, or PRESENTING',
-    'any.required': 'Activity status is required'
+    'any.only': 'Trạng thái hoạt động phải là OFFLINE, WAITING hoặc PRESENTING',
+    'any.required': 'Trạng thái hoạt động là bắt buộc'
   }),
 
   danhSachTrang: Joi.array()
     .items(
       Joi.object({
         loaiTrang: Joi.string().valid('NOI_DUNG', 'CAU_HOI').required().messages({
-          'any.only': 'Page type must be NOI_DUNG or CAU_HOI',
-          'any.required': 'Page type is required'
+          'any.only': 'Loại trang phải là NOI_DUNG hoặc CAU_HOI',
+          'any.required': 'Loại trang là bắt buộc'
         }),
 
         tieuDe: Joi.string().trim().min(1).max(300).required().messages({
-          'string.empty': 'Page title is required',
-          'string.min': 'Page title must be at least 1 character',
-          'string.max': 'Page title must not exceed 300 characters',
-          'any.required': 'Page title is required'
+          'string.empty': 'Tiêu đề trang là bắt buộc',
+          'string.min': 'Tiêu đề trang phải có ít nhất 1 ký tự',
+          'string.max': 'Tiêu đề trang không được vượt quá 300 ký tự',
+          'any.required': 'Tiêu đề trang là bắt buộc'
         }),
 
         hinhAnh: Joi.string().uri().allow(null, '').messages({
-          'string.uri': 'Image must be a valid URL'
+          'string.uri': 'Hình ảnh phải là một đường dẫn hợp lệ'
         }),
 
         video: Joi.string().uri().allow(null, '').messages({
-          'string.uri': 'Video must be a valid URL'
+          'string.uri': 'Video phải là một đường dẫn hợp lệ'
         }),
 
         hinhNen: Joi.string().uri().allow(null, '').messages({
-          'string.uri': 'Background image must be a valid URL'
+          'string.uri': 'Hình nền phải là một đường dẫn hợp lệ'
         }),
 
         cachTrinhBay: Joi.string().allow(null),
 
+        canLeTieuDe: Joi.string().allow(null, '').max(500).messages({
+          'string.max': 'Căn lề tiêu đề không được vượt quá 500 ký tự'
+        }),
+
+        canLeNoiDung: Joi.string().allow(null, '').max(500).messages({
+          'string.max': 'Căn lề nội dung không được vượt quá 500 ký tự'
+        }),
+
         noiDung: Joi.string().allow(null, '').max(5000).messages({
-          'string.max': 'Content must not exceed 5000 characters'
+          'string.max': 'Nội dung không được vượt quá 5000 ký tự'
         }),
 
         thoiGianGioiHan: Joi.number().integer().min(5).max(300).allow(null).messages({
-          'number.base': 'Time limit must be a number',
-          'number.integer': 'Time limit must be an integer',
-          'number.min': 'Time limit must be at least 5 seconds',
-          'number.max': 'Time limit must not exceed 300 seconds'
+          'number.base': 'Thời gian giới hạn phải là một số',
+          'number.integer': 'Thời gian giới hạn phải là số nguyên',
+          'number.min': 'Thời gian giới hạn phải ít nhất là 5 giây',
+          'number.max': 'Thời gian giới hạn không được vượt quá 300 giây'
         }),
 
         diem: Joi.string().valid('BINH_THUONG', 'GAP_DOI', 'KHONG_DIEM').default('BINH_THUONG'),
@@ -76,10 +84,10 @@ const updatePhongSchema = Joi.object({
           .items(
             Joi.object({
               noiDung: Joi.string().trim().min(1).max(500).required().messages({
-                'string.empty': 'Choice content is required',
-                'string.min': 'Choice content must be at least 1 character',
-                'string.max': 'Choice content must not exceed 500 characters',
-                'any.required': 'Choice content is required'
+                'string.empty': 'Nội dung lựa chọn là bắt buộc',
+                'string.min': 'Nội dung lựa chọn phải có ít nhất 1 ký tự',
+                'string.max': 'Nội dung lựa chọn không được vượt quá 500 ký tự',
+                'any.required': 'Nội dung lựa chọn là bắt buộc'
               }),
 
               ketQua: Joi.boolean().default(false)
@@ -91,60 +99,54 @@ const updatePhongSchema = Joi.object({
     .default([])
 });
 
-// Custom validation for business rules
+// Kiểm tra các quy tắc nghiệp vụ tùy chỉnh
 const validateBusinessRules = (data: any): string | null => {
   if (!data.danhSachTrang || data.danhSachTrang.length === 0) {
-    return null; // Empty pages are allowed
+    return null; // Cho phép phòng không có trang
   }
 
   for (let i = 0; i < data.danhSachTrang.length; i++) {
     const trang = data.danhSachTrang[i];
 
-    // Question pages must have choices
     if (trang.loaiTrang === 'CAU_HOI') {
       if (!trang.danhSachLuaChon || trang.danhSachLuaChon.length === 0) {
-        return `Page ${i + 1}: Question pages must have at least one choice`;
+        return `Trang ${i + 1}: Trang câu hỏi phải có ít nhất một lựa chọn`;
       }
 
       if (trang.danhSachLuaChon.length < 2) {
-        return `Page ${i + 1}: Question pages must have at least 2 choices`;
+        return `Trang ${i + 1}: Trang câu hỏi phải có ít nhất 2 lựa chọn`;
       }
 
       if (trang.danhSachLuaChon.length > 10) {
-        return `Page ${i + 1}: Question pages cannot have more than 10 choices`;
+        return `Trang ${i + 1}: Trang câu hỏi không được có quá 10 lựa chọn`;
       }
 
-      // At least one choice must be correct
       const hasCorrectAnswer = trang.danhSachLuaChon.some((choice: any) => choice.ketQua === true);
       if (!hasCorrectAnswer) {
-        return `Page ${i + 1}: At least one choice must be marked as correct`;
+        return `Trang ${i + 1}: Phải có ít nhất một lựa chọn đúng`;
       }
 
-      // For single select, only one choice should be correct
       if (trang.loaiCauTraLoi === 'SINGLE_SELECT') {
         const correctChoices = trang.danhSachLuaChon.filter(
           (choice: any) => choice.ketQua === true
         );
         if (correctChoices.length > 1) {
-          return `Page ${i + 1}: Single select questions can only have one correct answer`;
+          return `Trang ${i + 1}: Câu hỏi chọn một chỉ được có một đáp án đúng`;
         }
       }
 
-      // For true/false, must have exactly 2 choices
       if (trang.loaiCauTraLoi === 'TRUE_FALSE') {
         if (trang.danhSachLuaChon.length !== 2) {
-          return `Page ${i + 1}: True/False questions must have exactly 2 choices`;
+          return `Trang ${i + 1}: Câu hỏi đúng/sai phải có đúng 2 lựa chọn`;
         }
       }
 
-      // Question type is required for question pages
       if (!trang.loaiCauTraLoi) {
-        return `Page ${i + 1}: Question type is required for question pages`;
+        return `Trang ${i + 1}: Phải chọn loại câu trả lời cho trang câu hỏi`;
       }
     } else {
-      // Content pages should not have choices
       if (trang.danhSachLuaChon && trang.danhSachLuaChon.length > 0) {
-        return `Page ${i + 1}: Content pages should not have choices`;
+        return `Trang ${i + 1}: Trang nội dung không được chứa lựa chọn`;
       }
     }
   }
@@ -152,11 +154,11 @@ const validateBusinessRules = (data: any): string | null => {
   return null;
 };
 
-// Middleware function
+// Middleware
 const validateUpdatePhong = (req: Request, res: Response, next: NextFunction): void => {
   const { error, value } = updatePhongSchema.validate(req.body, {
-    abortEarly: false, // Show all validation errors
-    stripUnknown: true // Remove unknown fields
+    abortEarly: false,
+    stripUnknown: true
   });
 
   if (error) {
@@ -170,7 +172,6 @@ const validateUpdatePhong = (req: Request, res: Response, next: NextFunction): v
     return;
   }
 
-  // Custom business rules validation
   const businessRuleError = validateBusinessRules(value);
   if (businessRuleError) {
     res.status(400).json({
@@ -182,7 +183,6 @@ const validateUpdatePhong = (req: Request, res: Response, next: NextFunction): v
     return;
   }
 
-  // Set validated data back to request body
   req.body = value;
   next();
 };

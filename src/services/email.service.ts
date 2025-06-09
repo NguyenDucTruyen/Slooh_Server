@@ -10,7 +10,7 @@ if (config.env !== 'test') {
     .then(() => logger.info('Connected to email server'))
     .catch(() =>
       logger.warn(
-        'Unable to connect to email server. Make sure you have configured the SMTP options in .env'
+        'Không thể kết nối đến máy chủ email. Vui lòng kiểm tra cấu hình SMTP trong tệp cấu hình.'
       )
     );
 }

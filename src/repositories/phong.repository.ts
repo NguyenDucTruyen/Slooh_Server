@@ -1,12 +1,5 @@
 // src/repositories/phong.repository.ts
-import {
-  Diem,
-  HoatDongPhong,
-  LoaiCauTraLoi,
-  LoaiTrang,
-  PrismaClient,
-  TrangThai
-} from '@prisma/client';
+import { Diem, HoatDongPhong, PrismaClient, TrangThai } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -204,8 +197,8 @@ const getPublicRooms = async (maNguoiDung: string, page: number = 1, limit: numb
 
 const updateRoom = async (roomId: string, roomData: any) => {
   return prisma.$transaction(async (tx) => {
-    // Update basic room info
-    const updatedRoom = await tx.pHONG.update({
+    // 1. Update room info
+    await tx.pHONG.update({
       where: { maPhong: roomId },
       data: {
         tenPhong: roomData.tenPhong,
@@ -215,57 +208,104 @@ const updateRoom = async (roomId: string, roomData: any) => {
       }
     });
 
-    // Delete all existing pages and their choices (cascade will handle choices)
-    await tx.tRANG.deleteMany({
-      where: { maPhong: roomId }
+    // 2. Get existing pages
+    const currentRoom = await tx.pHONG.findUnique({
+      where: { maPhong: roomId },
+      include: {
+        trangs: {
+          include: { luaChon: true }
+        }
+      }
     });
 
-    // Create new pages with their choices
-    if (roomData.danhSachTrang && roomData.danhSachTrang.length > 0) {
-      for (let i = 0; i < roomData.danhSachTrang.length; i++) {
-        const trangData = roomData.danhSachTrang[i];
+    const oldTrangMap = new Map(currentRoom?.trangs.map((t) => [t.maTrang, t]));
 
-        const newTrang = await tx.tRANG.create({
+    const newTrangIds = new Set<string>();
+
+    for (let i = 0; i < roomData.danhSachTrang.length; i++) {
+      const trangData = roomData.danhSachTrang[i];
+      const maTrang = trangData.maTrang;
+
+      newTrangIds.add(maTrang);
+
+      if (oldTrangMap.has(maTrang)) {
+        // Update trang
+        await tx.tRANG.update({
+          where: { maTrang },
           data: {
-            maPhong: roomId,
-            loaiTrang: trangData.loaiTrang as LoaiTrang,
+            loaiTrang: trangData.loaiTrang,
             thuTu: i + 1,
             tieuDe: trangData.tieuDe || '',
             hinhAnh: trangData.hinhAnh,
             video: trangData.video,
             hinhNen: trangData.hinhNen,
             cachTrinhBay: trangData.cachTrinhBay || '',
+            canLeTieuDe: trangData.canLeTieuDe || '',
+            canLeNoiDung: trangData.canLeNoiDung || '',
             noiDung: trangData.noiDung,
             thoiGianGioiHan: trangData.thoiGianGioiHan,
-            diem: (trangData.diem as Diem) || Diem.BINH_THUONG,
-            loaiCauTraLoi: trangData.loaiCauTraLoi as LoaiCauTraLoi
+            diem: trangData.diem || Diem.BINH_THUONG,
+            loaiCauTraLoi: trangData.loaiCauTraLoi
           }
         });
 
-        // Create choices for this page
-        if (trangData.danhSachLuaChon && trangData.danhSachLuaChon.length > 0) {
-          const luaChonData = trangData.danhSachLuaChon.map((luaChon: any) => ({
-            maTrang: newTrang.maTrang,
-            noiDung: luaChon.noiDung,
-            ketQua: luaChon.ketQua || false
-          }));
+        // Update LuaChon:
+        // Xóa toàn bộ lựa chọn cũ rồi thêm lại (hoặc diff tương tự như trên nếu muốn tối ưu hơn)
+        await tx.lUACHON.deleteMany({ where: { maTrang } });
 
-          await tx.lUACHON.createMany({
-            data: luaChonData
-          });
+        if (Array.isArray(trangData.danhSachLuaChon)) {
+          const newChoices = trangData.danhSachLuaChon.map((lc: any) => ({
+            maTrang,
+            noiDung: lc.noiDung,
+            ketQua: lc.ketQua || false
+          }));
+          await tx.lUACHON.createMany({ data: newChoices });
+        }
+      } else {
+        // Tạo mới trang
+        const newTrang = await tx.tRANG.create({
+          data: {
+            maPhong: roomId,
+            loaiTrang: trangData.loaiTrang,
+            thuTu: i + 1,
+            tieuDe: trangData.tieuDe || '',
+            hinhAnh: trangData.hinhAnh,
+            video: trangData.video,
+            hinhNen: trangData.hinhNen,
+            cachTrinhBay: trangData.cachTrinhBay || '',
+            canLeTieuDe: trangData.canLeTieuDe || '',
+            canLeNoiDung: trangData.canLeNoiDung || '',
+            noiDung: trangData.noiDung,
+            thoiGianGioiHan: trangData.thoiGianGioHan,
+            diem: trangData.diem || Diem.BINH_THUONG,
+            loaiCauTraLoi: trangData.loaiCauTraLoi
+          }
+        });
+
+        if (Array.isArray(trangData.danhSachLuaChon)) {
+          const newChoices = trangData.danhSachLuaChon.map((lc: any) => ({
+            maTrang: newTrang.maTrang,
+            noiDung: lc.noiDung,
+            ketQua: lc.ketQua || false
+          }));
+          await tx.lUACHON.createMany({ data: newChoices });
         }
       }
     }
 
-    // Return the updated room with all relations
+    // 3. Xóa các trang cũ không còn trong danh sách mới
+    const trangCanXoa = currentRoom?.trangs.filter((t) => !newTrangIds.has(t.maTrang)) || [];
+    for (const trang of trangCanXoa) {
+      await tx.tRANG.delete({ where: { maTrang: trang.maTrang } });
+    }
+
+    // 4. Trả về kết quả đầy đủ
     return tx.pHONG.findUnique({
       where: { maPhong: roomId },
       include: {
         trangs: {
           orderBy: { thuTu: 'asc' },
-          include: {
-            luaChon: true
-          }
+          include: { luaChon: true }
         }
       }
     });
@@ -299,7 +339,7 @@ const cloneRoom = async (
   });
 
   if (!sourceRoom) {
-    throw new Error('Source room not found');
+    throw new Error('Không tìm thấy phòng để sao chép');
   }
 
   // Start a transaction to ensure all operations succeed or fail together
@@ -328,6 +368,8 @@ const cloneRoom = async (
           video: trang.video,
           hinhNen: trang.hinhNen,
           cachTrinhBay: trang.cachTrinhBay,
+          canLeTieuDe: trang.canLeTieuDe,
+          canLeNoiDung: trang.canLeNoiDung,
           noiDung: trang.noiDung,
           thoiGianGioiHan: trang.thoiGianGioiHan,
           diem: trang.diem,

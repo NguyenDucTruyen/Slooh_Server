@@ -7,6 +7,8 @@ export interface Trang {
   hinhAnh?: string;
   video?: string;
   hinhNen?: string;
+  canLeTieuDe?: string;
+  canLeNoiDung?: string;
   noiDung?: string;
   thoiGianGioiHan?: number;
   diem?: number;

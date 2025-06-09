@@ -15,23 +15,26 @@ const createRoom = async (
   try {
     const isOwner = await kenhService.checkIsChannelOwner(channelId, userId);
     if (!isOwner) {
-      return createErrorResponse(httpStatus.FORBIDDEN, 'You are not the owner of this channel.');
+      return createErrorResponse(
+        httpStatus.FORBIDDEN,
+        'Bạn không phải là chủ sở hữu của kênh này.'
+      );
     }
 
     if (!roomName || roomName.trim() === '') {
-      return createErrorResponse(httpStatus.BAD_REQUEST, 'Room name is required.');
+      return createErrorResponse(httpStatus.BAD_REQUEST, 'Tên phòng là bắt buộc.');
     }
 
     const existingRoom = await phongRepository.findRoomByNameAndChannel(roomName, channelId);
     if (existingRoom) {
-      return createErrorResponse(httpStatus.CONFLICT, 'Room already exists in this channel.');
+      return createErrorResponse(httpStatus.CONFLICT, 'Phòng đã tồn tại trong kênh này.');
     }
 
     const newRoom = await phongRepository.createRoom(roomName, channelId);
 
-    return createSuccessResponse(httpStatus.CREATED, 'Room created successfully.', newRoom);
+    return createSuccessResponse(httpStatus.CREATED, 'Tạo phòng thành công.', newRoom);
   } catch (error) {
-    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to create room.');
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể tạo phòng.');
   }
 };
 
@@ -42,35 +45,35 @@ const createPublicRoom = async (
 ): Promise<ServiceResponse> => {
   try {
     if (!roomName || roomName.trim() === '') {
-      return createErrorResponse(httpStatus.BAD_REQUEST, 'Room name is required.');
+      return createErrorResponse(httpStatus.BAD_REQUEST, 'Tên phòng là bắt buộc.');
     }
 
-    // Check if public room with same name exists
+    // Kiểm tra xem phòng công cộng với cùng tên đã tồn tại chưa
     const existingRoom = await phongRepository.findRoomByNameAndChannel(roomName, null);
     if (existingRoom) {
-      return createErrorResponse(httpStatus.CONFLICT, 'Public room with this name already exists.');
+      return createErrorResponse(httpStatus.CONFLICT, 'Phòng công cộng với tên này đã tồn tại.');
     }
 
     const newRoom = await phongRepository.createPublicRoom(userId, roomName, description);
 
-    return createSuccessResponse(httpStatus.CREATED, 'Public room created successfully.', newRoom);
+    return createSuccessResponse(httpStatus.CREATED, 'Tạo phòng công cộng thành công.', newRoom);
   } catch (error) {
-    console.error('Create public room error:', error);
-    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to create public room.');
+    console.error('Lỗi tạo phòng công cộng:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể tạo phòng công cộng.');
   }
 };
 
 const getRoomDetails = async (roomId: string): Promise<ServiceResponse> => {
   try {
-    console.log('Fetching room details for ID:', roomId);
+    console.log('Đang lấy chi tiết phòng với ID:', roomId);
     const room = await phongRepository.getRoomById(roomId);
-    console.log('Room details:', room);
+    console.log('Chi tiết phòng:', room);
     if (!room) {
-      return createErrorResponse(httpStatus.NOT_FOUND, 'Room not found.');
+      return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy phòng.');
     }
-    return createSuccessResponse(httpStatus.OK, 'Room details retrieved.', room);
+    return createSuccessResponse(httpStatus.OK, 'Lấy chi tiết phòng thành công.', room);
   } catch (error) {
-    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve room.');
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể lấy thông tin phòng.');
   }
 };
 
@@ -81,21 +84,24 @@ const getRoomsByChannel = async (
   limit: number = 10
 ): Promise<ServiceResponse> => {
   try {
-    // Check if channel exists
+    // Kiểm tra xem kênh có tồn tại không
     const channel = await kenhRepository.findChannelById(channelId);
     if (!channel) {
-      return createErrorResponse(httpStatus.NOT_FOUND, 'Channel not found.');
+      return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy kênh.');
     }
 
-    // Check if user is a member of the channel
+    // Kiểm tra xem người dùng có phải là thành viên của kênh không
     const member = await kenhRepository.findMemberByUserAndChannel(userId, channelId);
     if (!member || member.trangThai !== 'THAM_GIA') {
-      return createErrorResponse(httpStatus.FORBIDDEN, 'You are not a member of this channel.');
+      return createErrorResponse(
+        httpStatus.FORBIDDEN,
+        'Bạn không phải là thành viên của kênh này.'
+      );
     }
 
     const { rooms, total } = await phongRepository.getRoomsByChannelId(channelId, page, limit);
 
-    return createSuccessResponse(httpStatus.OK, 'Rooms retrieved successfully.', {
+    return createSuccessResponse(httpStatus.OK, 'Lấy danh sách phòng thành công.', {
       rooms,
       total,
       page,
@@ -103,8 +109,8 @@ const getRoomsByChannel = async (
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    console.error('Get rooms by channel error:', error);
-    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve rooms.');
+    console.error('Lỗi lấy phòng theo kênh:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể lấy danh sách phòng.');
   }
 };
 
@@ -114,12 +120,12 @@ const getRoomsOwnedByUser = async (
   limit: number = 10
 ): Promise<ServiceResponse> => {
   try {
-    // Get all channels where user is owner
+    // Lấy tất cả các kênh mà người dùng là chủ sở hữu
     const ownedChannels = await kenhRepository.findChannelsOwnedByUser(userId);
     const channelIds = ownedChannels.map((channel) => channel.maKenh);
 
     if (channelIds.length === 0) {
-      return createSuccessResponse(httpStatus.OK, 'No rooms found.', {
+      return createSuccessResponse(httpStatus.OK, 'Không tìm thấy phòng nào.', {
         rooms: [],
         total: 0,
         page,
@@ -130,7 +136,7 @@ const getRoomsOwnedByUser = async (
 
     const { rooms, total } = await phongRepository.getRoomsOwnedByUser(channelIds, page, limit);
 
-    return createSuccessResponse(httpStatus.OK, 'Rooms retrieved successfully.', {
+    return createSuccessResponse(httpStatus.OK, 'Lấy danh sách phòng thành công.', {
       rooms,
       total,
       page,
@@ -138,8 +144,8 @@ const getRoomsOwnedByUser = async (
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    console.error('Get rooms owned by user error:', error);
-    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve rooms.');
+    console.error('Lỗi lấy phòng của người dùng:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể lấy danh sách phòng.');
   }
 };
 
@@ -151,7 +157,7 @@ const getPublicRooms = async (
   try {
     const { rooms, total } = await phongRepository.getPublicRooms(maNguoiDung, page, limit);
 
-    return createSuccessResponse(httpStatus.OK, 'Public rooms retrieved successfully.', {
+    return createSuccessResponse(httpStatus.OK, 'Lấy danh sách phòng công cộng thành công.', {
       rooms,
       total,
       page,
@@ -159,10 +165,10 @@ const getPublicRooms = async (
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    console.error('Get public rooms error:', error);
+    console.error('Lỗi lấy phòng công cộng:', error);
     return createErrorResponse(
       httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to retrieve public rooms.'
+      'Không thể lấy danh sách phòng công cộng.'
     );
   }
 };
@@ -173,78 +179,69 @@ const updateRoom = async (
   userId: string
 ): Promise<ServiceResponse> => {
   try {
-    // Check if room exists
+    // Kiểm tra xem phòng có tồn tại không
     const existingRoom = await phongRepository.getRoomById(roomId);
     if (!existingRoom) {
-      return createErrorResponse(httpStatus.NOT_FOUND, 'Room not found.');
+      return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy phòng.');
     }
 
-    // Check ownership
+    // Kiểm tra quyền sở hữu
     const { isOwner, isPublic } = await phongRepository.checkRoomOwnership(roomId, userId);
 
     if (!isPublic && !isOwner) {
-      return createErrorResponse(
-        httpStatus.FORBIDDEN,
-        'You do not have permission to update this room.'
-      );
+      return createErrorResponse(httpStatus.FORBIDDEN, 'Bạn không có quyền cập nhật phòng này.');
     }
 
-    // For public rooms, might want to add additional checks (e.g., admin role)
+    // Đối với phòng công cộng, có thể muốn thêm kiểm tra bổ sung (ví dụ: vai trò admin)
     // if (isPublic && user.quyen !== 'ADMIN') {
-    //   return createErrorResponse(httpStatus.FORBIDDEN, 'Only admins can update public rooms.');
+    //   return createErrorResponse(httpStatus.FORBIDDEN, 'Chỉ admin mới có thể cập nhật phòng công cộng.');
     // }
 
-    // Validate room data
+    // Xác thực dữ liệu phòng
     const validationError = validateRoomData(roomData);
     if (validationError) {
       return createErrorResponse(httpStatus.BAD_REQUEST, validationError);
     }
 
-    // Update room
+    // Cập nhật phòng
     const updatedRoom = await phongRepository.updateRoom(roomId, roomData);
 
-    // Transform response to match interface
+    // Chuyển đổi phản hồi để khớp với interface
     const transformedRoom = transformRoomResponse(updatedRoom);
 
-    return createSuccessResponse(httpStatus.OK, 'Room updated successfully.', transformedRoom);
+    return createSuccessResponse(httpStatus.OK, 'Cập nhật phòng thành công.', transformedRoom);
   } catch (error) {
-    console.error('Update room error:', error);
-    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to update room.');
+    console.error('Lỗi cập nhật phòng:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể cập nhật phòng.');
   }
 };
 
 const deleteRoom = async (roomId: string, userId: string): Promise<ServiceResponse> => {
   try {
-    // Check if room exists
+    // Kiểm tra xem phòng có tồn tại không
     const existingRoom = await phongRepository.getRoomById(roomId);
     if (!existingRoom) {
-      return createErrorResponse(httpStatus.NOT_FOUND, 'Room not found.');
+      return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy phòng.');
     }
 
-    // Check if user has permission to delete
+    // Kiểm tra xem người dùng có quyền xóa không
     if (existingRoom.maKenh) {
       const isOwner = await kenhService.checkIsChannelOwner(existingRoom.maKenh, userId);
       if (!isOwner) {
-        return createErrorResponse(
-          httpStatus.FORBIDDEN,
-          'You are not authorized to delete this room.'
-        );
+        return createErrorResponse(httpStatus.FORBIDDEN, 'Bạn không có quyền xóa phòng này.');
       }
     } else {
-      // For public rooms, check if user is the creator
+      // Đối với phòng công cộng, kiểm tra xem người dùng có phải là người tạo không
       if (existingRoom.maNguoiTao !== userId) {
-        return createErrorResponse(
-          httpStatus.FORBIDDEN,
-          'You are not authorized to delete this room.'
-        );
+        return createErrorResponse(httpStatus.FORBIDDEN, 'Bạn không có quyền xóa phòng này.');
       }
     }
 
     await phongRepository.deleteRoom(roomId);
-    return createSuccessResponse(httpStatus.OK, 'Room deleted successfully.');
+    return createSuccessResponse(httpStatus.OK, 'Xóa phòng thành công.');
   } catch (error) {
-    console.error('Delete room error:', error);
-    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to delete room.');
+    console.error('Lỗi xóa phòng:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể xóa phòng.');
   }
 };
 
@@ -254,31 +251,25 @@ const cloneRoom = async (
   targetChannelId?: string
 ): Promise<ServiceResponse> => {
   try {
-    // Check if source room exists
+    // Kiểm tra xem phòng nguồn có tồn tại không
     const sourceRoom = await phongRepository.getRoomById(sourceRoomId);
     if (!sourceRoom) {
-      return createErrorResponse(httpStatus.NOT_FOUND, 'Source room not found.');
+      return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy phòng nguồn.');
     }
 
-    // If target channel is specified, check if user has permission
+    // Nếu kênh đích được chỉ định, kiểm tra xem người dùng có quyền không
     if (targetChannelId) {
       const isChannelOwner = await kenhService.checkIsChannelOwner(targetChannelId, userId);
       if (!isChannelOwner) {
-        return createErrorResponse(
-          httpStatus.FORBIDDEN,
-          'You must be the owner of the target channel.'
-        );
+        return createErrorResponse(httpStatus.FORBIDDEN, 'Bạn phải là chủ sở hữu của kênh đích.');
       }
     }
 
-    // If source room is in a channel, check if user has permission to view it
+    // Nếu phòng nguồn trong một kênh, kiểm tra xem người dùng có quyền xem không
     if (sourceRoom.maKenh) {
       const isChannelMember = await kenhService.checkIsChannelOwner(sourceRoom.maKenh, userId);
       if (!isChannelMember) {
-        return createErrorResponse(
-          httpStatus.FORBIDDEN,
-          'You do not have permission to clone this room.'
-        );
+        return createErrorResponse(httpStatus.FORBIDDEN, 'Bạn không có quyền sao chép phòng này.');
       }
     }
 
@@ -287,54 +278,54 @@ const cloneRoom = async (
       userId,
       targetChannelId || null
     );
-    return createSuccessResponse(httpStatus.CREATED, 'Room cloned successfully.', {
+    return createSuccessResponse(httpStatus.CREATED, 'Sao chép phòng thành công.', {
       ...clonedRoom,
       isPublic: !targetChannelId
     });
   } catch (error) {
-    console.error('Clone room error:', error);
-    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to clone room.');
+    console.error('Lỗi sao chép phòng:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể sao chép phòng.');
   }
 };
 
 const validateRoomData = (roomData: Phong): string | null => {
-  // Validate room name
+  // Xác thực tên phòng
   if (!roomData.tenPhong || roomData.tenPhong.trim() === '') {
-    return 'Room name is required.';
+    return 'Tên phòng là bắt buộc.';
   }
 
-  // Validate pages if provided
+  // Xác thực các trang nếu có
   if (roomData.danhSachTrang && roomData.danhSachTrang.length > 0) {
     for (let i = 0; i < roomData.danhSachTrang.length; i++) {
       const trang = roomData.danhSachTrang[i];
 
-      // Validate page type
+      // Xác thực loại trang
       if (!trang.loaiTrang || !['NOI_DUNG', 'CAU_HOI'].includes(trang.loaiTrang)) {
-        return `Page ${i + 1}: Invalid page type.`;
+        return `Trang ${i + 1}: Loại trang không hợp lệ.`;
       }
 
-      // Validate title
+      // Xác thực tiêu đề
       if (!trang.tieuDe || trang.tieuDe.trim() === '') {
-        return `Page ${i + 1}: Title is required.`;
+        return `Trang ${i + 1}: Tiêu đề là bắt buộc.`;
       }
 
-      // Validate choices for question pages
+      // Xác thực lựa chọn cho trang câu hỏi
       if (trang.loaiTrang === 'CAU_HOI') {
         if (!trang.danhSachLuaChon || trang.danhSachLuaChon.length === 0) {
-          return `Page ${i + 1}: Question pages must have at least one choice.`;
+          return `Trang ${i + 1}: Trang câu hỏi phải có ít nhất một lựa chọn.`;
         }
 
-        // Check if at least one choice is correct
+        // Kiểm tra xem có ít nhất một lựa chọn đúng không
         const hasCorrectAnswer = trang.danhSachLuaChon.some((choice) => choice.ketQua === true);
         if (!hasCorrectAnswer) {
-          return `Page ${i + 1}: At least one choice must be marked as correct.`;
+          return `Trang ${i + 1}: Phải có ít nhất một lựa chọn được đánh dấu là đúng.`;
         }
 
-        // Validate each choice
+        // Xác thực từng lựa chọn
         for (let j = 0; j < trang.danhSachLuaChon.length; j++) {
           const choice = trang.danhSachLuaChon[j];
           if (!choice.noiDung || choice.noiDung.trim() === '') {
-            return `Page ${i + 1}, Choice ${j + 1}: Content is required.`;
+            return `Trang ${i + 1}, Lựa chọn ${j + 1}: Nội dung là bắt buộc.`;
           }
         }
       }
@@ -360,6 +351,9 @@ const transformRoomResponse = (room: any): Phong => {
       hinhAnh: trang.hinhAnh,
       video: trang.video,
       hinhNen: trang.hinhNen,
+      cachTrinhBay: trang.cachTrinhBay,
+      canLeTieuDe: trang.canLeTieuDe,
+      canLeNoiDung: trang.canLeNoiDung,
       noiDung: trang.noiDung,
       thoiGianGioiHan: trang.thoiGianGioiHan,
       diem: trang.diem,
