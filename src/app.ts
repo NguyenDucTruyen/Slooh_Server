@@ -23,13 +23,17 @@ if (config.env !== 'test') {
 // set security HTTP headers
 app.use(
   helmet({
-    // Allow WebSocket connections
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        connectSrc: ["'self'", 'ws://localhost:*', 'wss://localhost:*']
+        connectSrc: ["'self'", 'http://localhost:*', 'ws://localhost:*', 'wss://localhost:*'],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'blob:']
       }
-    }
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
   })
 );
 
@@ -47,32 +51,26 @@ app.use(compression());
 
 // enable cors with proper config for Socket.IO
 const corsOptions = {
-  origin: function (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) {
-    // Allow requests with no origin (like mobile apps or Postman)
-    if (!origin) return callback(null, true);
-
-    // List of allowed origins
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:8080',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:8080',
-      'file://' // For local HTML files
-    ];
-
-    // Allow any localhost origin in development
-    if (config.env === 'development') {
-      if (
-        origin.includes('localhost') ||
-        origin.includes('127.0.0.1') ||
-        origin.startsWith('file://')
-      ) {
-        return callback(null, true);
-      }
+  origin: function (
+    origin: string | undefined,
+    callback: (error: Error | null, allow?: boolean) => void
+  ) {
+    // Allow requests with no origin (like mobile apps, Postman or same-origin requests)
+    if (!origin) {
+      return callback(null, true);
     }
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // In development mode, allow specific localhost origins
+    const allowedOrigins = [
+      config.appUrl.client, // Use config instead of process.env
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173',
+      'http://localhost:4173' // Vite preview port
+    ].filter(Boolean);
+
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -80,8 +78,20 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['X-Total-Count']
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers',
+    'Access-Control-Allow-Origin'
+  ],
+  exposedHeaders: ['X-Total-Count', 'Content-Range'],
+  maxAge: 86400, // Cache preflight requests for 24 hours
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
