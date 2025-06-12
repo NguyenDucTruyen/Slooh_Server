@@ -213,28 +213,50 @@ const updateRoom = async (roomId: string, roomData: any) => {
       where: { maPhong: roomId },
       include: {
         trangs: {
-          include: { luaChon: true }
+          include: { luaChon: true },
+          orderBy: { thuTu: 'asc' }
         }
       }
     });
 
-    const oldTrangMap = new Map(currentRoom?.trangs.map((t) => [t.maTrang, t]));
+    if (!currentRoom) {
+      throw new Error('Room not found');
+    }
 
+    // Create maps for easier lookup
+    const oldTrangMap = new Map(currentRoom.trangs.map((t) => [t.maTrang, t]));
     const newTrangIds = new Set<string>();
 
+    // Track pages to delete first
+    const trangIdsToDelete = currentRoom.trangs
+      .filter((t) => !roomData.danhSachTrang.some((newT: any) => newT.maTrang === t.maTrang))
+      .map((t) => t.maTrang);
+
+    // Delete pages that are no longer in the new list
+    if (trangIdsToDelete.length > 0) {
+      await tx.tRANG.deleteMany({
+        where: {
+          maTrang: { in: trangIdsToDelete }
+        }
+      });
+    }
+
+    // Process pages in order
     for (let i = 0; i < roomData.danhSachTrang.length; i++) {
       const trangData = roomData.danhSachTrang[i];
       const maTrang = trangData.maTrang;
+      const targetThuTu = i + 1;
 
-      newTrangIds.add(maTrang);
+      if (maTrang && oldTrangMap.has(maTrang)) {
+        // Update existing page
+        const oldTrang = oldTrangMap.get(maTrang)!;
 
-      if (oldTrangMap.has(maTrang)) {
-        // Update trang
+        // Update the page
         await tx.tRANG.update({
           where: { maTrang },
           data: {
             loaiTrang: trangData.loaiTrang,
-            thuTu: i + 1,
+            thuTu: targetThuTu,
             tieuDe: trangData.tieuDe || '',
             hinhAnh: trangData.hinhAnh,
             video: trangData.video,
@@ -249,11 +271,10 @@ const updateRoom = async (roomId: string, roomData: any) => {
           }
         });
 
-        // Update LuaChon:
-        // Xóa toàn bộ lựa chọn cũ rồi thêm lại (hoặc diff tương tự như trên nếu muốn tối ưu hơn)
+        // Update choices
         await tx.lUACHON.deleteMany({ where: { maTrang } });
 
-        if (Array.isArray(trangData.danhSachLuaChon)) {
+        if (Array.isArray(trangData.danhSachLuaChon) && trangData.danhSachLuaChon.length > 0) {
           const newChoices = trangData.danhSachLuaChon.map((lc: any) => ({
             maTrang,
             noiDung: lc.noiDung,
@@ -262,12 +283,12 @@ const updateRoom = async (roomId: string, roomData: any) => {
           await tx.lUACHON.createMany({ data: newChoices });
         }
       } else {
-        // Tạo mới trang
+        // Create new page
         const newTrang = await tx.tRANG.create({
           data: {
             maPhong: roomId,
             loaiTrang: trangData.loaiTrang,
-            thuTu: i + 1,
+            thuTu: targetThuTu,
             tieuDe: trangData.tieuDe || '',
             hinhAnh: trangData.hinhAnh,
             video: trangData.video,
@@ -276,13 +297,13 @@ const updateRoom = async (roomId: string, roomData: any) => {
             canLeTieuDe: trangData.canLeTieuDe || '',
             canLeNoiDung: trangData.canLeNoiDung || '',
             noiDung: trangData.noiDung,
-            thoiGianGioiHan: trangData.thoiGianGioHan,
+            thoiGianGioiHan: trangData.thoiGianGioiHan,
             diem: trangData.diem || Diem.BINH_THUONG,
             loaiCauTraLoi: trangData.loaiCauTraLoi
           }
         });
 
-        if (Array.isArray(trangData.danhSachLuaChon)) {
+        if (Array.isArray(trangData.danhSachLuaChon) && trangData.danhSachLuaChon.length > 0) {
           const newChoices = trangData.danhSachLuaChon.map((lc: any) => ({
             maTrang: newTrang.maTrang,
             noiDung: lc.noiDung,
@@ -293,13 +314,7 @@ const updateRoom = async (roomId: string, roomData: any) => {
       }
     }
 
-    // 3. Xóa các trang cũ không còn trong danh sách mới
-    const trangCanXoa = currentRoom?.trangs.filter((t) => !newTrangIds.has(t.maTrang)) || [];
-    for (const trang of trangCanXoa) {
-      await tx.tRANG.delete({ where: { maTrang: trang.maTrang } });
-    }
-
-    // 4. Trả về kết quả đầy đủ
+    // Return the updated room
     return tx.pHONG.findUnique({
       where: { maPhong: roomId },
       include: {
