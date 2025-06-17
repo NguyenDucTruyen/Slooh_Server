@@ -22,6 +22,15 @@ const loginUserWithEmailAndPassword = async (
   if (!user || !(await isPasswordMatch(password, user.matKhau as string))) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Email hoặc mật khẩu không chính xác');
   }
+
+  // Check if user account is locked
+  if (user.trangThai === 'KHOA') {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.'
+    );
+  }
+
   return exclude(user, ['matKhau']);
 };
 

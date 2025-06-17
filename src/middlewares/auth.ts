@@ -1,10 +1,10 @@
-import passport from 'passport';
-import httpStatus from 'http-status';
-import ApiError from '../utils/ApiError';
-import { roleRights } from '../config/roles';
-import { NextFunction, Request, Response } from 'express';
 import { NGUOIDUNG as User } from '@prisma/client';
+import { NextFunction, Request, Response } from 'express';
+import httpStatus from 'http-status';
+import passport from 'passport';
 import config from '../config/config';
+import { roleRights } from '../config/roles';
+import ApiError from '../utils/ApiError';
 const verifyCallback =
   (
     req: any,
@@ -16,6 +16,17 @@ const verifyCallback =
     if (err || info || !user) {
       return reject(new ApiError(httpStatus.UNAUTHORIZED, 'Vui lòng xác thực'));
     }
+
+    // Check if user account is locked
+    if (user.trangThai === 'KHOA') {
+      return reject(
+        new ApiError(
+          httpStatus.FORBIDDEN,
+          'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.'
+        )
+      );
+    }
+
     req.user = user;
 
     if (requiredRights.length) {

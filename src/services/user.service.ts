@@ -95,7 +95,62 @@ const updateUserById = async (
   if (updateBody.email && (await getUserByEmail(updateBody.email as string))) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email đã tồn tại');
   }
+
+  // If password is being updated, encrypt it
+  if (updateBody.matKhau) {
+    updateBody.matKhau = await encryptPassword(updateBody.matKhau as string);
+  }
+
   return prisma.nGUOIDUNG.update({ where: { maNguoiDung }, data: updateBody });
+};
+
+/**
+ * Change user password
+ * @param {string} maNguoiDung
+ * @param {string} currentPassword
+ * @param {string} newPassword
+ * @returns {Promise<void>}
+ */
+const changePassword = async (
+  maNguoiDung: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<void> => {
+  const user = await getUserById(maNguoiDung);
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Không tìm thấy người dùng');
+  }
+
+  // Verify current password
+  const { isPasswordMatch } = await import('../utils/encryption');
+  if (!(await isPasswordMatch(currentPassword, user.matKhau))) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Mật khẩu hiện tại không chính xác');
+  }
+
+  // Update with new password
+  const hashedNewPassword = await encryptPassword(newPassword);
+  await prisma.nGUOIDUNG.update({
+    where: { maNguoiDung },
+    data: { matKhau: hashedNewPassword }
+  });
+};
+
+/**
+ * Update user status (Admin only)
+ * @param {string} maNguoiDung
+ * @param {Status} trangThai
+ * @returns {Promise<User>}
+ */
+const updateUserStatus = async (maNguoiDung: string, trangThai: Status): Promise<User> => {
+  const user = await getUserById(maNguoiDung);
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Không tìm thấy người dùng');
+  }
+
+  return prisma.nGUOIDUNG.update({
+    where: { maNguoiDung },
+    data: { trangThai }
+  });
 };
 
 /**
@@ -118,5 +173,7 @@ export default {
   getUserById,
   getUserByEmail,
   updateUserById,
-  deleteUserById
+  deleteUserById,
+  changePassword,
+  updateUserStatus
 };

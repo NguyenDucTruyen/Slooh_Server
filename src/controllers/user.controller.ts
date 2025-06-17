@@ -1,10 +1,10 @@
+import { NGUOIDUNG as User } from '@prisma/client';
 import httpStatus from 'http-status';
-import pick from '../utils/pick';
+import { userService } from '../services';
 import ApiError from '../utils/ApiError';
 import catchAsync from '../utils/catchAsync';
-import { userService } from '../services';
-import { NGUOIDUNG as User } from '@prisma/client';
 import exclude from '../utils/exclude';
+import pick from '../utils/pick';
 
 const createUser = catchAsync(async (req, res) => {
   const { email, password, name, role } = req.body;
@@ -29,7 +29,25 @@ const getUser = catchAsync(async (req, res) => {
 
 const updateUser = catchAsync(async (req, res) => {
   const user = await userService.updateUserById(req.params.userId, req.body);
-  res.send(user);
+  res.send(user ? exclude(user, ['matKhau']) : null);
+});
+
+// Change password for authenticated user
+const changePassword = catchAsync(async (req, res) => {
+  const user = req.user as User;
+  const { currentPassword, newPassword } = req.body;
+
+  await userService.changePassword(user.maNguoiDung, currentPassword, newPassword);
+  res.send({ message: 'Đổi mật khẩu thành công' });
+});
+
+// Update user status (Admin only)
+const updateUserStatus = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  const { trangThai } = req.body;
+
+  const updatedUser = await userService.updateUserStatus(userId, trangThai);
+  res.send(exclude(updatedUser, ['matKhau']));
 });
 
 const deleteUser = catchAsync(async (req, res) => {
@@ -52,5 +70,7 @@ export default {
   getUser,
   updateUser,
   deleteUser,
-  getMe
+  getMe,
+  changePassword,
+  updateUserStatus
 };

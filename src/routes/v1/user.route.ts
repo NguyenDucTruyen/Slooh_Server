@@ -1,8 +1,8 @@
 import express from 'express';
+import { userController } from '../../controllers';
 import auth from '../../middlewares/auth';
 import validate from '../../middlewares/validate';
 import { userValidation } from '../../validations';
-import { userController } from '../../controllers';
 
 const router = express.Router();
 
@@ -13,11 +13,27 @@ router
 
 router.get('/me', auth(), userController.getMe);
 
+// Change password for authenticated user
+router.patch(
+  '/change-password',
+  auth(),
+  validate(userValidation.changePassword),
+  userController.changePassword
+);
+
 router
   .route('/:userId')
   .get(auth('getUsers'), validate(userValidation.getUser), userController.getUser)
   .patch(auth('manageUsers'), validate(userValidation.updateUser), userController.updateUser)
   .delete(auth('manageUsers'), validate(userValidation.deleteUser), userController.deleteUser);
+
+// Admin route to update user status
+router.patch(
+  '/:userId/status',
+  auth('manageUsers'),
+  validate(userValidation.updateUserStatus),
+  userController.updateUserStatus
+);
 
 export default router;
 

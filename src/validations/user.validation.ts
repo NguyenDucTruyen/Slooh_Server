@@ -1,4 +1,4 @@
-import { Quyen as Role } from '@prisma/client';
+import { Quyen as Role, TrangThai as Status } from '@prisma/client';
 import Joi from 'joi';
 import { password } from './custom.validation';
 
@@ -29,15 +29,41 @@ const getUser = {
 
 const updateUser = {
   params: Joi.object().keys({
-    userId: Joi.number().integer()
+    userId: Joi.string().required()
   }),
   body: Joi.object()
     .keys({
       email: Joi.string().email(),
       password: Joi.string().custom(password),
-      name: Joi.string()
+      hoTen: Joi.string(),
+      anhDaiDien: Joi.string().uri().allow(null, '').messages({
+        'string.uri': 'Ảnh đại diện phải là URL hợp lệ'
+      })
     })
     .min(1)
+};
+
+const changePassword = {
+  body: Joi.object().keys({
+    currentPassword: Joi.string().required().messages({
+      'any.required': 'Mật khẩu hiện tại là bắt buộc'
+    }),
+    newPassword: Joi.string().required().custom(password).messages({
+      'any.required': 'Mật khẩu mới là bắt buộc'
+    })
+  })
+};
+
+const updateUserStatus = {
+  params: Joi.object().keys({
+    userId: Joi.string().required()
+  }),
+  body: Joi.object().keys({
+    trangThai: Joi.string().valid(Status.HOAT_DONG, Status.KHOA).required().messages({
+      'any.only': 'Trạng thái phải là HOAT_DONG hoặc KHOA',
+      'any.required': 'Trạng thái là bắt buộc'
+    })
+  })
 };
 
 const deleteUser = {
@@ -51,5 +77,7 @@ export default {
   getUsers,
   getUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  changePassword,
+  updateUserStatus
 };
