@@ -3,7 +3,9 @@
 import express from 'express';
 import phongController from '../../controllers/phong.controller';
 import auth from '../../middlewares/auth';
+import validate from '../../middlewares/validate';
 import validateUpdatePhong from '../../middlewares/validateUpdatePhong';
+import { phongValidation } from '../../validations';
 
 const router = express.Router();
 
@@ -31,5 +33,31 @@ router.put('/:maPhong', auth(), validateUpdatePhong, phongController.updateRoom)
 // Delete and clone routes
 router.delete('/:maPhong', auth(), phongController.deleteRoom);
 router.post('/:maPhong/clone', auth(), phongController.cloneRoom);
+
+// Admin routes
+router.get(
+  '/admin/all',
+  auth('manageRooms'),
+  validate(phongValidation.getAllRooms),
+  phongController.getAllRooms
+);
+router.get(
+  '/admin/kenh/:maKenh',
+  auth('manageRooms'),
+  validate(phongValidation.getAllRoomsInChannel),
+  phongController.getAllRoomsInChannel
+);
+router.get(
+  '/admin/public/all',
+  auth('manageRooms'),
+  validate(phongValidation.getAllPublicRooms),
+  phongController.getAllPublicRooms
+);
+router.patch(
+  '/admin/:maPhong/status',
+  auth('manageRooms'),
+  validate(phongValidation.updateRoomStatus),
+  phongController.updateRoomStatus
+);
 
 export default router;

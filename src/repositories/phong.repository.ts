@@ -453,6 +453,151 @@ const checkRoomOwnership = async (roomId: string, userId: string) => {
   return { isOwner, isPublic: false };
 };
 
+// ADMIN: Get all rooms with pagination
+const findAllRooms = async (skip: number, limit: number) => {
+  const [rooms, total] = await Promise.all([
+    prisma.pHONG.findMany({
+      where: {
+        ngayXoa: null
+      },
+      include: {
+        kenh: {
+          select: {
+            maKenh: true,
+            tenKenh: true
+          }
+        },
+        nguoiTao: {
+          select: {
+            maNguoiDung: true,
+            hoTen: true,
+            email: true,
+            anhDaiDien: true
+          }
+        },
+        _count: {
+          select: {
+            trangs: true
+          }
+        }
+      },
+      skip,
+      take: limit,
+      orderBy: {
+        ngayTao: 'desc'
+      }
+    }),
+    prisma.pHONG.count({
+      where: {
+        ngayXoa: null
+      }
+    })
+  ]);
+
+  return { rooms, total };
+};
+
+// ADMIN: Get all rooms in specific channel with pagination
+const findAllRoomsByChannel = async (channelId: string, skip: number, limit: number) => {
+  const [rooms, total] = await Promise.all([
+    prisma.pHONG.findMany({
+      where: {
+        maKenh: channelId,
+        ngayXoa: null
+      },
+      include: {
+        kenh: {
+          select: {
+            maKenh: true,
+            tenKenh: true
+          }
+        },
+        nguoiTao: {
+          select: {
+            maNguoiDung: true,
+            hoTen: true,
+            email: true,
+            anhDaiDien: true
+          }
+        },
+        _count: {
+          select: {
+            trangs: true
+          }
+        }
+      },
+      skip,
+      take: limit,
+      orderBy: {
+        ngayTao: 'desc'
+      }
+    }),
+    prisma.pHONG.count({
+      where: {
+        maKenh: channelId,
+        ngayXoa: null
+      }
+    })
+  ]);
+
+  return { rooms, total };
+};
+
+// ADMIN: Get all public rooms with pagination
+const findAllPublicRooms = async (skip: number, limit: number) => {
+  const [rooms, total] = await Promise.all([
+    prisma.pHONG.findMany({
+      where: {
+        maKenh: null,
+        ngayXoa: null
+      },
+      include: {
+        nguoiTao: {
+          select: {
+            maNguoiDung: true,
+            hoTen: true,
+            email: true,
+            anhDaiDien: true
+          }
+        },
+        _count: {
+          select: {
+            trangs: true
+          }
+        }
+      },
+      skip,
+      take: limit,
+      orderBy: {
+        ngayTao: 'desc'
+      }
+    }),
+    prisma.pHONG.count({
+      where: {
+        maKenh: null,
+        ngayXoa: null
+      }
+    })
+  ]);
+
+  return { rooms, total };
+};
+
+// ADMIN: Update room status
+const updateRoomStatus = async (roomId: string, trangThai: TrangThai) => {
+  return prisma.pHONG.update({
+    where: { maPhong: roomId },
+    data: { trangThai }
+  });
+};
+
+// Helper to find room by ID (used by service)
+const findRoomById = async (roomId: string) => {
+  return prisma.pHONG.findUnique({
+    where: { maPhong: roomId }
+  });
+};
+
 export default {
   findRoomByNameAndChannel,
   createRoom,
@@ -465,5 +610,10 @@ export default {
   deleteRoom,
   cloneRoom,
   checkRoomExists,
-  checkRoomOwnership
+  checkRoomOwnership,
+  findAllRooms,
+  findAllRoomsByChannel,
+  findAllPublicRooms,
+  updateRoomStatus,
+  findRoomById
 };

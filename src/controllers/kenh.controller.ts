@@ -146,6 +146,24 @@ const leaveChannel = catchAsync(async (req, res) => {
   sendResponse(res, result.statusCode, result.success, result.message, result.data);
 });
 
+// ADMIN APIs - Get all channels
+const getAllChannels = catchAsync(async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
+  const result = await kenhService.getAllChannelList(page, limit);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
+// ADMIN APIs - Update channel status
+const updateChannelStatus = catchAsync(async (req, res) => {
+  const { maKenh } = req.params;
+  const { trangThai } = req.body;
+
+  const result = await kenhService.updateChannelStatus(maKenh, trangThai);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
 export default {
   createChannel,
   updateChannel,
@@ -161,5 +179,7 @@ export default {
   cancelJoinRequest,
   getJoinedChannels,
   getPendingJoinRequests,
-  leaveChannel
+  leaveChannel,
+  getAllChannels,
+  updateChannelStatus
 };

@@ -1,5 +1,5 @@
 // src/services/kenh.service.ts
-import { TrangThaiThanhVien, VaiTroKenh } from '@prisma/client';
+import { TrangThai, TrangThaiThanhVien, VaiTroKenh } from '@prisma/client';
 import httpStatus from 'http-status';
 import { createErrorResponse, createSuccessResponse } from '../helpers/CreateResponse.helper';
 import { ServiceResponse } from '../interfaces/ServiceResponse.interface';
@@ -501,7 +501,10 @@ const processJoinRequests = async (
 
     return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, errorMessage);
   } catch (error) {
-    console.error(`Lỗi khi ${action === 'accept' ? 'accepting' : 'rejecting'} yêu cầu tham gia:`, error);
+    console.error(
+      `Lỗi khi ${action === 'accept' ? 'accepting' : 'rejecting'} yêu cầu tham gia:`,
+      error
+    );
     const errorMessage =
       action === 'accept'
         ? 'Không thể chấp nhận yêu cầu tham gia'
@@ -529,6 +532,32 @@ const rejectJoinRequests = async (
   return processJoinRequests(channelId, emails, userId, 'reject');
 };
 
+// ADMIN: Update channel status
+const updateChannelStatus = async (
+  channelId: string,
+  trangThai: TrangThai
+): Promise<ServiceResponse> => {
+  try {
+    const channel = await kenhRepository.findChannelById(channelId);
+    if (!channel) {
+      return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy kênh.');
+    }
+
+    const updatedChannel = await kenhRepository.updateChannelStatus(channelId, trangThai);
+    return createSuccessResponse(
+      httpStatus.OK,
+      'Cập nhật trạng thái kênh thành công.',
+      updatedChannel
+    );
+  } catch (error) {
+    console.error('Lỗi khi cập nhật trạng thái kênh:', error);
+    return createErrorResponse(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Không thể cập nhật trạng thái kênh'
+    );
+  }
+};
+
 export default {
   checkIsChannelOwner,
   createChannel,
@@ -546,5 +575,6 @@ export default {
   cancelJoinRequest,
   getJoinedChannels,
   getPendingJoinRequests,
-  leaveChannel
+  leaveChannel,
+  updateChannelStatus
 };

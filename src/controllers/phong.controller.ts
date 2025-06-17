@@ -89,6 +89,43 @@ const cloneRoom = catchAsync(async (req, res) => {
   sendResponse(res, result.statusCode, result.success, result.message, result.data);
 });
 
+// ADMIN APIs - Get all rooms
+const getAllRooms = catchAsync(async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
+  const result = await phongService.getAllRooms(page, limit);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
+// ADMIN APIs - Get all rooms in channel
+const getAllRoomsInChannel = catchAsync(async (req, res) => {
+  const { maKenh } = req.params;
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
+  const result = await phongService.getAllRoomsInChannel(maKenh, page, limit);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
+// ADMIN APIs - Get all public rooms
+const getAllPublicRooms = catchAsync(async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
+  const result = await phongService.getAllPublicRooms(page, limit);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
+// ADMIN APIs - Update room status
+const updateRoomStatus = catchAsync(async (req, res) => {
+  const { maPhong } = req.params;
+  const { trangThai } = req.body;
+
+  const result = await phongService.updateRoomStatus(maPhong, trangThai);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
 export default {
   createRoom,
   createPublicRoom,
@@ -98,6 +135,10 @@ export default {
   getPublicRooms,
   updateRoom,
   deleteRoom,
-  cloneRoom
+  cloneRoom,
+  getAllRooms,
+  getAllRoomsInChannel,
+  getAllPublicRooms,
+  updateRoomStatus
 };
 //

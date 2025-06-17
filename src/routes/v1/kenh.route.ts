@@ -2,6 +2,8 @@
 import express from 'express';
 import kenhController from '../../controllers/kenh.controller';
 import auth from '../../middlewares/auth';
+import validate from '../../middlewares/validate';
+import { kenhValidation } from '../../validations';
 
 const router = express.Router();
 
@@ -27,5 +29,19 @@ router.post('/:maKenh/roi', auth(), kenhController.leaveChannel); // Rời kênh
 router.get('/daThamGia', auth(), kenhController.getJoinedChannels); // Lấy danh sách kênh đã tham gia
 router.get('/yeuCauThamGia', auth(), kenhController.getPendingJoinRequests); // Lấy danh sách kênh đã gửi yêu cầu
 router.get('/:maKenh', auth(), kenhController.getChannelById);
+
+// Admin routes - get all channels and update status
+router.get(
+  '/admin/all',
+  auth('manageChannels'),
+  validate(kenhValidation.getAllChannels),
+  kenhController.getAllChannels
+);
+router.patch(
+  '/admin/:maKenh/status',
+  auth('manageChannels'),
+  validate(kenhValidation.updateChannelStatus),
+  kenhController.updateChannelStatus
+);
 
 export default router;

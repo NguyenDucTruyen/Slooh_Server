@@ -24,7 +24,7 @@ async function main() {
 
       const admin = await prisma.nGUOIDUNG.create({
         data: {
-          hoTen: 'System Administrator',
+          hoTen: 'Administrator',
           email: 'admin@slooh.com',
           matKhau: hashedPassword,
           anhDaiDien: 'https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff',

@@ -33,7 +33,7 @@ async function createAdminUser() {
 
     const admin = await prisma.nGUOIDUNG.create({
       data: {
-        hoTen: 'System Administrator',
+        hoTen: 'Administrator',
         email: adminEmail,
         matKhau: hashedPassword,
         anhDaiDien: null,

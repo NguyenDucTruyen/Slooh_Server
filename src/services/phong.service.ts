@@ -6,6 +6,7 @@ import { ServiceResponse } from '../interfaces/ServiceResponse.interface';
 import kenhRepository from '../repositories/kenh.repository';
 import phongRepository from '../repositories/phong.repository';
 import kenhService from './kenh.service';
+import { TrangThai } from '@prisma/client';
 
 const createRoom = async (
   roomName: string,
@@ -367,6 +368,99 @@ const transformRoomResponse = (room: any): Phong => {
   };
 };
 
+// ADMIN: Get all rooms
+const getAllRooms = async (page: number = 1, limit: number = 10): Promise<ServiceResponse> => {
+  try {
+    const skip = (page - 1) * limit;
+    const { rooms, total } = await phongRepository.findAllRooms(skip, limit);
+
+    return createSuccessResponse(httpStatus.OK, 'Lấy danh sách phòng thành công.', {
+      rooms,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phòng:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể lấy danh sách phòng');
+  }
+};
+
+// ADMIN: Get all rooms in a specific channel
+const getAllRoomsInChannel = async (
+  channelId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<ServiceResponse> => {
+  try {
+    const skip = (page - 1) * limit;
+    const { rooms, total } = await phongRepository.findAllRoomsByChannel(channelId, skip, limit);
+
+    return createSuccessResponse(httpStatus.OK, 'Lấy danh sách phòng trong kênh thành công.', {
+      rooms,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phòng trong kênh:', error);
+    return createErrorResponse(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Không thể lấy danh sách phòng trong kênh'
+    );
+  }
+};
+
+// ADMIN: Get all public rooms
+const getAllPublicRooms = async (
+  page: number = 1,
+  limit: number = 10
+): Promise<ServiceResponse> => {
+  try {
+    const skip = (page - 1) * limit;
+    const { rooms, total } = await phongRepository.findAllPublicRooms(skip, limit);
+
+    return createSuccessResponse(httpStatus.OK, 'Lấy danh sách phòng công khai thành công.', {
+      rooms,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phòng công khai:', error);
+    return createErrorResponse(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Không thể lấy danh sách phòng công khai'
+    );
+  }
+};
+
+// ADMIN: Update room status
+const updateRoomStatus = async (roomId: string, trangThai: TrangThai): Promise<ServiceResponse> => {
+  try {
+    const room = await phongRepository.findRoomById(roomId);
+    if (!room) {
+      return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy phòng.');
+    }
+
+    const updatedRoom = await phongRepository.updateRoomStatus(roomId, trangThai);
+    return createSuccessResponse(
+      httpStatus.OK,
+      'Cập nhật trạng thái phòng thành công.',
+      updatedRoom
+    );
+  } catch (error) {
+    console.error('Lỗi khi cập nhật trạng thái phòng:', error);
+    return createErrorResponse(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Không thể cập nhật trạng thái phòng'
+    );
+  }
+};
+
 export default {
   createRoom,
   createPublicRoom,
@@ -376,5 +470,9 @@ export default {
   getPublicRooms,
   updateRoom,
   deleteRoom,
-  cloneRoom
+  cloneRoom,
+  getAllRooms,
+  getAllRoomsInChannel,
+  getAllPublicRooms,
+  updateRoomStatus
 };

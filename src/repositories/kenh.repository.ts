@@ -56,6 +56,13 @@ class KenhRepository {
     });
   }
 
+  async updateChannelStatus(channelId: string, trangThai: TrangThai) {
+    return prisma.kENH.update({
+      where: { maKenh: channelId },
+      data: { trangThai }
+    });
+  }
+
   async softDeleteChannel(channelId: string) {
     return prisma.kENH.update({
       where: { maKenh: channelId },
