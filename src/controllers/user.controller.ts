@@ -13,10 +13,22 @@ const createUser = catchAsync(async (req, res) => {
 });
 
 const getUsers = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['name', 'role']);
+  const filter = pick(req.query, ['hoTen', 'quyen']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   const result = await userService.queryUsers(filter, options);
-  res.send(result);
+
+  // Format response with pagination info
+  const page = Number(options.page) || 1;
+  const limit = Number(options.limit) || 10;
+  const totalPages = Math.ceil(result.total / limit);
+
+  res.send({
+    users: result.users,
+    total: result.total,
+    page,
+    limit,
+    totalPages
+  });
 });
 
 const getUser = catchAsync(async (req, res) => {

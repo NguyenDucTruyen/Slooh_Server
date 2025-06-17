@@ -18,52 +18,62 @@ async function main() {
 
     if (existingAdmin) {
       console.log('👤 Admin user already exists:', existingAdmin.email);
-      return;
+    } else {
+      const adminPassword = 'Admin123!'; // Change this to a secure password
+      const hashedPassword = await encryptPassword(adminPassword);
+
+      const admin = await prisma.nGUOIDUNG.create({
+        data: {
+          hoTen: 'System Administrator',
+          email: 'admin@slooh.com',
+          matKhau: hashedPassword,
+          anhDaiDien: 'https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff',
+          quyen: Quyen.ADMIN,
+          trangThai: TrangThai.HOAT_DONG,
+          daXacThucEmail: true
+        }
+      });
+      // Create admin user
+
+      console.log('✅ Admin user created successfully:');
+      console.log('   Email:', admin.email);
+      console.log('   Password:', adminPassword);
+      console.log('   Role:', admin.quyen);
+      console.log('   Status:', admin.trangThai);
     }
-
-    // Create admin user
-    const adminPassword = 'Admin123!'; // Change this to a secure password
-    const hashedPassword = await encryptPassword(adminPassword);
-
-    const admin = await prisma.nGUOIDUNG.create({
-      data: {
-        hoTen: 'System Administrator',
-        email: 'admin@slooh.com',
-        matKhau: hashedPassword,
-        anhDaiDien: null,
-        quyen: Quyen.ADMIN,
-        trangThai: TrangThai.HOAT_DONG,
-        daXacThucEmail: true
-      }
-    });
-
-    console.log('✅ Admin user created successfully:');
-    console.log('   Email:', admin.email);
-    console.log('   Password:', adminPassword);
-    console.log('   Role:', admin.quyen);
-    console.log('   Status:', admin.trangThai);
 
     // Create a demo regular user
     const userPassword = 'User123!';
     const hashedUserPassword = await encryptPassword(userPassword);
 
-    const demoUser = await prisma.nGUOIDUNG.create({
-      data: {
-        hoTen: 'Demo User',
-        email: 'user@slooh.com',
-        matKhau: hashedUserPassword,
-        anhDaiDien: 'https://ui-avatars.com/api/?name=Demo+User&background=0D8ABC&color=fff',
-        quyen: Quyen.NGUOI_DUNG,
-        trangThai: TrangThai.HOAT_DONG,
-        daXacThucEmail: true
-      }
-    });
+    const additionalUsers = [
+      { hoTen: 'Đức Truyền', email: 'ductruyen@slooh.com' },
+      { hoTen: 'Võ Thị Thùy Dương', email: 'thuyduongvo@slooh.com' },
+      { hoTen: 'Nguyễn Văn Vĩnh Định', email: 'nvvdin@slooh.com' },
+      { hoTen: 'Alice Nguyễn', email: 'alice.nguyen@slooh.com' },
+      { hoTen: 'Nguyễn Văn A', email: 'aanv@slooh.com' },
+      { hoTen: 'Travis Nguyễn', email: 'travis.alu@slooh.com' }
+    ];
+
+    for (const user of additionalUsers) {
+      const randomColor = Math.floor(Math.random() * 16777215)
+        .toString(16)
+        .padStart(6, '0');
+      await prisma.nGUOIDUNG.create({
+        data: {
+          hoTen: user.hoTen,
+          email: user.email,
+          matKhau: hashedUserPassword,
+          anhDaiDien: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.hoTen)}&background=${randomColor}&color=fff`,
+          quyen: Quyen.NGUOI_DUNG,
+          trangThai: TrangThai.HOAT_DONG,
+          daXacThucEmail: true
+        }
+      });
+    }
 
     console.log('✅ Demo user created successfully:');
-    console.log('   Email:', demoUser.email);
     console.log('   Password:', userPassword);
-    console.log('   Role:', demoUser.quyen);
-    console.log('   Status:', demoUser.trangThai);
 
     // Create a locked user for testing
     const lockedUserPassword = 'Locked123!';

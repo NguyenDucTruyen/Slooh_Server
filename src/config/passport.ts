@@ -25,7 +25,9 @@ const jwtVerify: VerifyCallback = async (payload, done) => {
       select: {
         maNguoiDung: true,
         email: true,
-        hoTen: true
+        hoTen: true,
+        quyen: true,
+        trangThai: true,
       },
       where: { maNguoiDung: payload.sub }
     });

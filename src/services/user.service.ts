@@ -36,28 +36,53 @@ const createUser = async (
  * Query for users
  * @param {Object} filter - Prisma filter
  * @param {Object} options - Query options
- * @returns {Promise<User[]>}
+ * @returns {Promise<{users: Omit<User, 'matKhau'>[], total: number}>}
  */
 const queryUsers = async (
-  filter: Prisma.NGUOIDUNGWhereInput,
+  filter: any, // Change to any to handle custom filter logic
   options: {
     limit?: number;
     page?: number;
     sortBy?: string;
     sortType?: 'asc' | 'desc';
   }
-): Promise<User[]> => {
+): Promise<{ users: Omit<User, 'matKhau'>[]; total: number }> => {
   const page = options.page ?? 1;
   const limit = options.limit ?? 10;
   const sortBy = options.sortBy ?? 'ngayTao';
   const sortType = options.sortType ?? 'desc';
 
-  return prisma.nGUOIDUNG.findMany({
-    where: filter,
-    skip: (page - 1) * limit,
-    take: limit,
-    orderBy: { [sortBy]: sortType }
-  });
+  // Build Prisma where clause
+  const whereClause: Prisma.NGUOIDUNGWhereInput = {};
+
+  // Handle hoTen filtering with partial matching
+  if (filter.hoTen && filter.hoTen !== '') {
+    whereClause.hoTen = {
+      contains: filter.hoTen,
+      mode: 'insensitive' // Case-insensitive search
+    };
+  }
+
+  // Handle quyen filtering
+  if (filter.quyen && filter.quyen !== '') {
+    whereClause.quyen = filter.quyen;
+  }
+
+  // Execute both queries in parallel for better performance
+  const [users, total] = await Promise.all([
+    prisma.nGUOIDUNG.findMany({
+      where: whereClause,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { [sortBy]: sortType }
+    }),
+    prisma.nGUOIDUNG.count({ where: whereClause }) // Fixed: Apply same filter to count
+  ]);
+
+  return {
+    users: users.map(({ matKhau, ...user }) => user),
+    total
+  };
 };
 
 /**

@@ -39,3 +39,11 @@ export interface ApiResponseWithStatusAndErrors<T> extends ApiResponse<T> {
   status: string;
   errors: any;
 }
+
+export interface PaginatedUsersResponse {
+  users: any[]; // Array of users without password field
+  total: number; // Total number of users matching the filter
+  page: number; // Current page number
+  limit: number; // Number of items per page
+  totalPages: number; // Total number of pages
+}
