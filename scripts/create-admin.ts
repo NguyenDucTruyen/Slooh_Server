@@ -28,15 +28,15 @@ async function createAdminUser() {
 
     // Create the admin user
     const adminEmail = 'admin@slooh.com';
-    const adminPassword = 'Admin123!'; // You should change this!
+    const adminPassword = '123456Aa'; // You should change this!
     const hashedPassword = await encryptPassword(adminPassword);
 
     const admin = await prisma.nGUOIDUNG.create({
       data: {
         hoTen: 'Administrator',
-        email: adminEmail,
+        email: 'admin@slooh.com',
         matKhau: hashedPassword,
-        anhDaiDien: null,
+        anhDaiDien: 'https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff',
         quyen: Quyen.ADMIN,
         trangThai: TrangThai.HOAT_DONG,
         daXacThucEmail: true

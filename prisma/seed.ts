@@ -19,7 +19,7 @@ async function main() {
     if (existingAdmin) {
       console.log('👤 Admin user already exists:', existingAdmin.email);
     } else {
-      const adminPassword = 'Admin123!'; // Change this to a secure password
+      const adminPassword = '123456Aa'; // Change this to a secure password
       const hashedPassword = await encryptPassword(adminPassword);
 
       const admin = await prisma.nGUOIDUNG.create({
