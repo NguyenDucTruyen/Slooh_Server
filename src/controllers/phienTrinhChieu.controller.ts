@@ -47,10 +47,20 @@ const endPhien = catchAsync(async (req, res) => {
   sendResponse(res, result.statusCode, result.success, result.message, result.data);
 });
 
+// Get PIN by room ID
+const getPinByRoomId = catchAsync(async (req, res) => {
+  const user = req.user as User;
+  const { maPhong } = req.params;
+
+  const result = await phienTrinhChieuService.getPinByRoomId(maPhong, user.maNguoiDung);
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
 export default {
   createPhien,
   getPhienById,
   getPhienByPin,
   getLeaderboard,
-  endPhien
+  endPhien,
+  getPinByRoomId
 };

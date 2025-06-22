@@ -219,7 +219,7 @@ class PhienTrinhChieuRepository {
   // Get leaderboard
   async getLeaderboard(maPhien: string) {
     return prisma.tHANHVIENPHIENTRINHCHIEU.findMany({
-      where: { maPhien },
+      where: { maPhien, vaiTro: VaiTroPhien.THANH_VIEN },
       orderBy: { tongDiem: 'desc' },
       include: {
         nguoiDung: {

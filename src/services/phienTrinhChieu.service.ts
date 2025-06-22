@@ -1,4 +1,5 @@
 // src/services/phienTrinhChieu.service.ts
+import { HoatDongPhong } from '@prisma/client';
 import httpStatus from 'http-status';
 import prisma from '../client';
 import { createErrorResponse, createSuccessResponse } from '../helpers/CreateResponse.helper';
@@ -40,30 +41,39 @@ class PhienTrinhChieuService {
       // Check if there's already an active session
       const activeSession = await phienTrinhChieuRepository.getActivePhienByRoom(maPhong);
       if (activeSession) {
-        return createErrorResponse(
-          httpStatus.CONFLICT,
-          'Phòng đã có phiên trình chiếu đang hoạt động.'
-        );
+        // Delete the active session before creating a new one
+        await phienTrinhChieuRepository.deletePhien(activeSession.maPhien);
+        console.log('Deleted existing active session:', activeSession.maPhien);
       }
 
-      // Create new session
-      const phien = await phienTrinhChieuRepository.createPhien(maPhong, maNguoiDung);
-
-      // Update host member name and avatar
-      if (phien.thanhVien[0] && phien.thanhVien[0].nguoiDung) {
-        await prisma.tHANHVIENPHIENTRINHCHIEU.update({
-          where: { maThanhVienPhien: phien.thanhVien[0].maThanhVienPhien },
-          data: {
-            tenThanhVien: phien.thanhVien[0].nguoiDung.hoTen,
-            anhDaiDien: phien.thanhVien[0].nguoiDung.anhDaiDien
-          }
+      const result = await prisma.$transaction(async (tx) => {
+        // Update room status to PRESENTING
+        await tx.pHONG.update({
+          where: { maPhong },
+          data: { hoatDong: HoatDongPhong.PRESENTING }
         });
-      }
+
+        // Create presentation session
+        const phien = await phienTrinhChieuRepository.createPhien(maPhong, maNguoiDung);
+
+        // Update host member name and avatar
+        if (phien.thanhVien[0] && phien.thanhVien[0].nguoiDung) {
+          await prisma.tHANHVIENPHIENTRINHCHIEU.update({
+            where: { maThanhVienPhien: phien.thanhVien[0].maThanhVienPhien },
+            data: {
+              tenThanhVien: phien.thanhVien[0].nguoiDung.hoTen,
+              anhDaiDien: phien.thanhVien[0].nguoiDung.anhDaiDien
+            }
+          });
+        }
+
+        return phien;
+      });
 
       return createSuccessResponse(httpStatus.CREATED, 'Tạo phiên trình chiếu thành công.', {
-        maPhien: phien.maPhien,
-        maPin: phien.maPin,
-        phong: phien.phong
+        maPhien: result.maPhien,
+        maPin: result.maPin,
+        phong: result.phong
       });
     } catch (error) {
       console.error('Lỗi tạo phiên trình chiếu:', error);
@@ -244,14 +254,30 @@ class PhienTrinhChieuService {
         );
       }
 
-      // Get final leaderboard before deleting
-      const leaderboard = await phienTrinhChieuRepository.getLeaderboard(maPhien);
+      const result = await prisma.$transaction(async (tx) => {
+        const phien = await tx.pHIENTRINHCHIEU.findUnique({
+          where: { maPhien },
+          include: { phong: true }
+        });
 
-      // Delete session
-      await phienTrinhChieuRepository.deletePhien(maPhien);
+        if (!phien) {
+          throw new Error('Không tìm thấy phiên.');
+        }
+
+        // Update room status back to OFFLINE
+        await tx.pHONG.update({
+          where: { maPhong: phien.maPhong },
+          data: { hoatDong: HoatDongPhong.OFFLINE }
+        });
+
+        // Delete session
+        await phienTrinhChieuRepository.deletePhien(maPhien);
+
+        return phien;
+      });
 
       return createSuccessResponse(httpStatus.OK, 'Kết thúc phiên thành công.', {
-        finalLeaderboard: leaderboard
+        finalLeaderboard: result
       });
     } catch (error) {
       console.error('Lỗi kết thúc phiên:', error);
@@ -302,6 +328,53 @@ class PhienTrinhChieuService {
     } catch (error) {
       console.error('Lỗi kiểm tra host:', error);
       return false;
+    }
+  }
+
+  // Get PIN by room ID
+  async getPinByRoomId(maPhong: string, maNguoiDung: string): Promise<ServiceResponse> {
+    try {
+      // Check if room exists
+      const room = await phongRepository.getRoomById(maPhong);
+      if (!room) {
+        return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy phòng.');
+      }
+
+      // Only allow for channel rooms
+      if (!room.maKenh) {
+        return createErrorResponse(
+          httpStatus.FORBIDDEN,
+          'Chức năng này chỉ áp dụng cho phòng trong kênh.'
+        );
+      }
+
+      // Check if user is channel member
+      const isMember = await phienTrinhChieuRepository.isUserChannelMember(
+        maNguoiDung,
+        room.maKenh
+      );
+      if (!isMember) {
+        return createErrorResponse(
+          httpStatus.FORBIDDEN,
+          'Bạn phải là thành viên của kênh để xem mã PIN.'
+        );
+      }
+
+      // Get active session for the room
+      const activeSession = await phienTrinhChieuRepository.getActivePhienByRoom(maPhong);
+      if (!activeSession) {
+        return createErrorResponse(
+          httpStatus.NOT_FOUND,
+          'Không có phiên trình chiếu đang hoạt động cho phòng này.'
+        );
+      }
+
+      return createSuccessResponse(httpStatus.OK, 'Lấy mã PIN thành công.', {
+        maPin: activeSession.maPin
+      });
+    } catch (error) {
+      console.error('Error getting PIN by room ID:', error);
+      return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể lấy mã PIN.');
     }
   }
 }

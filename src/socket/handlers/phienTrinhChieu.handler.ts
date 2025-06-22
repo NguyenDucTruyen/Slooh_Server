@@ -2,6 +2,7 @@
 import { Socket, Server as SocketIOServer } from 'socket.io';
 import logger from '../../config/logger';
 import phienTrinhChieuService from '../../services/phienTrinhChieu.service';
+import { SocketEvent } from '../../types/socket.enum';
 
 interface AuthenticatedSocket extends Socket {
   user?: any;
@@ -33,7 +34,7 @@ interface StartQuestionData {
 
 const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer) => {
   // Create new presentation session
-  socket.on('phien:create', async (data: CreatePhienData, callback) => {
+  socket.on(SocketEvent.CREATE_PHIEN, async (data: CreatePhienData, callback) => {
     try {
       if (!socket.user) {
         return callback({
@@ -54,7 +55,7 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
         socket.maThanhVienPhien = result.data.phong.thanhVien?.[0]?.maThanhVienPhien;
 
         // Notify room that session started
-        io.to(`room:${data.maPhong}`).emit('phien:started', {
+        io.to(`room:${data.maPhong}`).emit(SocketEvent.STARTED, {
           maPhien: result.data.maPhien,
           maPin: result.data.maPin
         });
@@ -71,7 +72,7 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
   });
 
   // Join session by PIN
-  socket.on('phien:join', async (data: JoinPhienData, callback) => {
+  socket.on(SocketEvent.JOIN_PHIEN, async (data: JoinPhienData, callback) => {
     try {
       const tenThanhVien = data.tenThanhVien || socket.user?.hoTen || 'Khách';
       const maNguoiDung = socket.user?.maNguoiDung;
@@ -91,7 +92,7 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
         socket.maThanhVienPhien = result.data.maThanhVienPhien;
 
         // Notify others about new member
-        socket.to(`phien:${result.data.maPhien}`).emit('phien:memberJoined', {
+        socket.to(`phien:${result.data.maPhien}`).emit(SocketEvent.MEMBER_JOINED, {
           maThanhVienPhien: result.data.maThanhVienPhien,
           tenThanhVien,
           anhDaiDien
@@ -109,7 +110,7 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
   });
 
   // Navigate to page (host only)
-  socket.on('phien:navigate', async (data: NavigateData) => {
+  socket.on(SocketEvent.NAVIGATE, async (data: NavigateData) => {
     if (!socket.phienId) return;
 
     try {
@@ -120,12 +121,12 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
       );
 
       if (!isHost) {
-        socket.emit('error', { message: 'Chỉ chủ phiên mới có thể điều khiển.' });
+        socket.emit(SocketEvent.ERROR, { message: 'Chỉ chủ phiên mới có thể điều khiển.' });
         return;
       }
 
       // Broadcast navigation to all members
-      io.to(`phien:${socket.phienId}`).emit('phien:navigated', {
+      io.to(`phien:${socket.phienId}`).emit(SocketEvent.NAVIGATED, {
         trangIndex: data.trangIndex
       });
     } catch (error) {
@@ -134,7 +135,7 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
   });
 
   // Start question timer (host only)
-  socket.on('phien:startQuestion', async (data: StartQuestionData) => {
+  socket.on(SocketEvent.START_QUESTION, async (data: StartQuestionData) => {
     if (!socket.phienId) return;
 
     try {
@@ -145,12 +146,12 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
       );
 
       if (!isHost) {
-        socket.emit('error', { message: 'Chỉ chủ phiên mới có thể bắt đầu câu hỏi.' });
+        socket.emit(SocketEvent.ERROR, { message: 'Chỉ chủ phiên mới có thể bắt đầu câu hỏi.' });
         return;
       }
 
       // Broadcast question start to all members
-      io.to(`phien:${socket.phienId}`).emit('phien:questionStarted', {
+      io.to(`phien:${socket.phienId}`).emit(SocketEvent.QUESTION_STARTED, {
         trangIndex: data.trangIndex,
         startTime: Date.now()
       });
@@ -160,7 +161,7 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
   });
 
   // Submit answer
-  socket.on('phien:submitAnswer', async (data: SubmitAnswerData, callback) => {
+  socket.on(SocketEvent.SUBMIT_ANSWER, async (data: SubmitAnswerData, callback) => {
     if (!socket.phienId || !socket.maThanhVienPhien) {
       return callback({
         success: false,
@@ -177,7 +178,7 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
       );
 
       // Notify host about answer submission
-      socket.to(`phien:${socket.phienId}`).emit('phien:answerSubmitted', {
+      socket.to(`phien:${socket.phienId}`).emit(SocketEvent.ANSWER_SUBMITTED, {
         maThanhVienPhien: socket.maThanhVienPhien
       });
 
@@ -192,7 +193,7 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
   });
 
   // Show leaderboard (host only)
-  socket.on('phien:showLeaderboard', async () => {
+  socket.on(SocketEvent.SHOW_LEADERBOARD, async () => {
     if (!socket.phienId) return;
 
     try {
@@ -203,14 +204,16 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
       );
 
       if (!isHost) {
-        socket.emit('error', { message: 'Chỉ chủ phiên mới có thể hiển thị bảng xếp hạng.' });
+        socket.emit(SocketEvent.ERROR, {
+          message: 'Chỉ chủ phiên mới có thể hiển thị bảng xếp hạng.'
+        });
         return;
       }
 
       const result = await phienTrinhChieuService.getLeaderboard(socket.phienId);
 
       if (result.success) {
-        io.to(`phien:${socket.phienId}`).emit('phien:leaderboard', result.data);
+        io.to(`phien:${socket.phienId}`).emit(SocketEvent.LEADERBOARD, result.data);
       }
     } catch (error) {
       logger.error('Error showing leaderboard:', error);
@@ -218,7 +221,7 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
   });
 
   // End session (host only)
-  socket.on('phien:end', async (callback) => {
+  socket.on(SocketEvent.END_PHIEN, async (callback) => {
     if (!socket.phienId) {
       return callback({
         success: false,
@@ -234,7 +237,7 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
 
       if (result.success) {
         // Notify all members
-        io.to(`phien:${socket.phienId}`).emit('phien:ended', {
+        io.to(`phien:${socket.phienId}`).emit(SocketEvent.ENDED, {
           finalLeaderboard: result.data?.finalLeaderboard
         });
 
@@ -258,7 +261,7 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
   });
 
   // Leave session
-  socket.on('phien:leave', async (callback) => {
+  socket.on(SocketEvent.LEAVE_PHIEN, async (callback) => {
     if (!socket.phienId || !socket.maThanhVienPhien) {
       return callback({
         success: false,
@@ -271,7 +274,7 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
 
       if (result.success) {
         // Notify others
-        socket.to(`phien:${socket.phienId}`).emit('phien:memberLeft', {
+        socket.to(`phien:${socket.phienId}`).emit(SocketEvent.MEMBER_LEFT, {
           maThanhVienPhien: socket.maThanhVienPhien
         });
 
@@ -292,14 +295,14 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
   });
 
   // Handle disconnect
-  socket.on('disconnect', async () => {
+  socket.on(SocketEvent.DISCONNECT, async () => {
     if (socket.phienId && socket.maThanhVienPhien) {
       try {
         // Remove member from session
         await phienTrinhChieuService.leavePhien(socket.maThanhVienPhien);
 
         // Notify others
-        socket.to(`phien:${socket.phienId}`).emit('phien:memberLeft', {
+        socket.to(`phien:${socket.phienId}`).emit(SocketEvent.MEMBER_LEFT, {
           maThanhVienPhien: socket.maThanhVienPhien
         });
       } catch (error) {
