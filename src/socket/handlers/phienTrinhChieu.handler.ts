@@ -20,7 +20,7 @@ interface JoinPhienData {
 }
 
 interface SubmitAnswerData {
-  maLuaChon: string;
+  maLuaChon: string | string[]; // Can be a single choice ID or array of choice IDs
   thoiGian: number;
 }
 
@@ -170,12 +170,24 @@ const phienTrinhChieuHandler = (socket: AuthenticatedSocket, io: SocketIOServer)
     }
 
     try {
-      const result = await phienTrinhChieuService.submitAnswer(
-        socket.phienId,
-        socket.maThanhVienPhien,
-        data.maLuaChon,
-        data.thoiGian
-      );
+      let result;
+      if (Array.isArray(data.maLuaChon)) {
+        // Handle multiple answers
+        result = await phienTrinhChieuService.submitMultipleAnswers(
+          socket.phienId,
+          socket.maThanhVienPhien,
+          data.maLuaChon,
+          data.thoiGian
+        );
+      } else {
+        // Handle single answer
+        result = await phienTrinhChieuService.submitAnswer(
+          socket.phienId,
+          socket.maThanhVienPhien,
+          data.maLuaChon,
+          data.thoiGian
+        );
+      }
 
       // Notify host about answer submission
       socket.to(`phien:${socket.phienId}`).emit(SocketEvent.ANSWER_SUBMITTED, {

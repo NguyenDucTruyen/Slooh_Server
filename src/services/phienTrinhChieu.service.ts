@@ -218,6 +218,61 @@ class PhienTrinhChieuService {
     }
   }
 
+  // Submit multiple answers
+  async submitMultipleAnswers(
+    maPhien: string,
+    maThanhVienPhien: string,
+    maLuaChons: string[],
+    thoiGian: number
+  ): Promise<ServiceResponse> {
+    try {
+      // Verify member belongs to session
+      const phien = await phienTrinhChieuRepository.getPhienById(maPhien);
+      if (!phien) {
+        return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy phiên.');
+      }
+
+      const member = phien.thanhVien.find((m) => m.maThanhVienPhien === maThanhVienPhien);
+      if (!member) {
+        return createErrorResponse(
+          httpStatus.FORBIDDEN,
+          'Bạn không phải thành viên của phiên này.'
+        );
+      }
+
+      // Submit all answers
+      const answers = await Promise.all(
+        maLuaChons.map((maLuaChon) =>
+          phienTrinhChieuRepository.submitAnswer(maThanhVienPhien, maLuaChon, thoiGian)
+        )
+      );
+
+      // Check if all selected answers are correct
+      const allAnswersCorrect = answers.every((answer) => answer.luaChon.ketQua === true);
+      const anyAnswerIncorrect = answers.some((answer) => answer.luaChon.ketQua === false);
+
+      // Only award points if all selected answers are correct and no incorrect ones were selected
+      if (allAnswersCorrect && !anyAnswerIncorrect) {
+        const basePoints = 1000;
+        const timeBonus = Math.max(0, 1000 - thoiGian * 50); // Lose 50 points per second
+        const totalPoints = basePoints + timeBonus;
+
+        await phienTrinhChieuRepository.updateMemberScore(maThanhVienPhien, totalPoints);
+
+        return createSuccessResponse(httpStatus.OK, 'Gửi câu trả lời thành công.', {
+          correct: true
+        });
+      } else {
+        return createSuccessResponse(httpStatus.OK, 'Gửi câu trả lời thành công.', {
+          correct: false
+        });
+      }
+    } catch (error) {
+      console.error('Lỗi gửi câu trả lời:', error);
+      return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể gửi câu trả lời.');
+    }
+  }
+
   // Get leaderboard
   async getLeaderboard(maPhien: string): Promise<ServiceResponse> {
     try {
