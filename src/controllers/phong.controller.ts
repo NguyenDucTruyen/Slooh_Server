@@ -126,6 +126,25 @@ const updateRoomStatus = catchAsync(async (req, res) => {
   sendResponse(res, result.statusCode, result.success, result.message, result.data);
 });
 
+const extractRoomFromFile = catchAsync(async (req, res) => {
+  const user = req.user as User;
+  const file = req.file;
+  const { maKenh, tenPhong } = req.body;
+
+  if (!file) {
+    return sendResponse(res, 400, false, 'Vui lòng tải lên một file.', null);
+  }
+
+  const result = await phongService.extractRoomDataFromFile(
+    file,
+    tenPhong,
+    maKenh,
+    user.maNguoiDung
+  );
+  
+  sendResponse(res, result.statusCode, result.success, result.message, result.data);
+});
+
 export default {
   createRoom,
   createPublicRoom,
@@ -139,6 +158,6 @@ export default {
   getAllRooms,
   getAllRoomsInChannel,
   getAllPublicRooms,
-  updateRoomStatus
+  updateRoomStatus,
+  extractRoomFromFile // Add new function to export
 };
-//

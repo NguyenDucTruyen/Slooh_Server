@@ -1,7 +1,7 @@
-import { ErrorRequestHandler } from 'express';
 import { Prisma } from '@prisma/client';
+import { ErrorRequestHandler } from 'express';
 import httpStatus from 'http-status';
-import config from '../config/config';
+import config from '../config';
 import logger from '../config/logger';
 import ApiError from '../utils/ApiError';
 

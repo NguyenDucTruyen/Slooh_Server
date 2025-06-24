@@ -1,9 +1,9 @@
 import { LoaiMa as TokenType } from '@prisma/client';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { ExtractJwt, Strategy as JwtStrategy, VerifyCallback } from 'passport-jwt';
+import config from '.';
 import prisma from '../client';
 import { authService } from '../services';
-import config from './config';
 
 const jwtOptions = {
   secretOrKey: config.jwt.secret,
@@ -27,7 +27,7 @@ const jwtVerify: VerifyCallback = async (payload, done) => {
         email: true,
         hoTen: true,
         quyen: true,
-        trangThai: true,
+        trangThai: true
       },
       where: { maNguoiDung: payload.sub }
     });

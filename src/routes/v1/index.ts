@@ -1,6 +1,6 @@
 // src/routes/v1/index.ts
 import express from 'express';
-import config from '../../config/config';
+import config from '../../config';
 import authRoute from './auth.route';
 import docsRoute from './docs.route';
 import kenhRoute from './kenh.route';

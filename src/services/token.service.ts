@@ -3,7 +3,7 @@ import httpStatus from 'http-status';
 import jwt from 'jsonwebtoken';
 import moment, { Moment } from 'moment';
 import prisma from '../client';
-import config from '../config/config';
+import config from '../config';
 import { AuthTokensResponse } from '../types/response';
 import ApiError from '../utils/ApiError';
 import userService from './user.service';

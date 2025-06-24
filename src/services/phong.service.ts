@@ -1,12 +1,14 @@
 // src/services/phong.service.ts
+import { TrangThai } from '@prisma/client';
 import httpStatus from 'http-status';
 import { createErrorResponse, createSuccessResponse } from '../helpers/CreateResponse.helper';
 import { Phong } from '../interfaces/Phong.interface';
 import { ServiceResponse } from '../interfaces/ServiceResponse.interface';
 import kenhRepository from '../repositories/kenh.repository';
 import phongRepository from '../repositories/phong.repository';
+import { extractContentFromFile } from '../utils/fileExtractor.util';
+import { generateRoomDataFromContent } from '../utils/geminiExtractor.util';
 import kenhService from './kenh.service';
-import { TrangThai } from '@prisma/client';
 
 const createRoom = async (
   roomName: string,
@@ -461,6 +463,83 @@ const updateRoomStatus = async (roomId: string, trangThai: TrangThai): Promise<S
   }
 };
 
+const extractRoomDataFromFile = async (
+  file: Express.Multer.File,
+  roomName: string,
+  channelId: string | null,
+  userId: string
+): Promise<ServiceResponse> => {
+  try {
+    // Validate room name
+    if (!roomName || roomName.trim() === '') {
+      return createErrorResponse(httpStatus.BAD_REQUEST, 'Tên phòng là bắt buộc.');
+    }
+
+    // Check permissions if creating in a channel
+    if (channelId) {
+      const isOwner = await kenhService.checkIsChannelOwner(channelId, userId);
+      if (!isOwner) {
+        return createErrorResponse(
+          httpStatus.FORBIDDEN,
+          'Bạn không phải là chủ sở hữu của kênh này.'
+        );
+      }
+
+      // Check if room already exists in channel
+      const existingRoom = await phongRepository.findRoomByNameAndChannel(roomName, channelId);
+      if (existingRoom) {
+        return createErrorResponse(httpStatus.CONFLICT, 'Phòng đã tồn tại trong kênh này.');
+      }
+    } else {
+      // Check if public room already exists
+      const existingRoom = await phongRepository.findRoomByNameAndChannel(roomName, null);
+      if (existingRoom) {
+        return createErrorResponse(httpStatus.CONFLICT, 'Phòng công cộng với tên này đã tồn tại.');
+      }
+    }
+
+    // Extract content from file
+    const fileContent = await extractContentFromFile(file);
+
+    if (!fileContent) {
+      return createErrorResponse(
+        httpStatus.BAD_REQUEST,
+        'Không thể đọc nội dung file. Vui lòng kiểm tra lại file.'
+      );
+    }
+
+    // Generate room data from content using Gemini
+    const roomData = await generateRoomDataFromContent(fileContent, roomName);
+
+    if (!roomData) {
+      return createErrorResponse(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        'Không thể tạo nội dung phòng từ file.'
+      );
+    }
+
+    // Create room with generated data
+    let newRoom;
+    if (channelId) {
+      newRoom = await phongRepository.createRoomWithPages(roomData, channelId);
+    } else {
+      newRoom = await phongRepository.createPublicRoomWithPages(roomData, userId);
+    }
+
+    // Transform response
+    const transformedRoom = transformRoomResponse(newRoom);
+
+    return createSuccessResponse(
+      httpStatus.CREATED,
+      'Tạo phòng từ file thành công.',
+      transformedRoom
+    );
+  } catch (error) {
+    console.error('Lỗi khi tạo phòng từ file:', error);
+    return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể tạo phòng từ file.');
+  }
+};
+
 export default {
   createRoom,
   createPublicRoom,
@@ -474,5 +553,6 @@ export default {
   getAllRooms,
   getAllRoomsInChannel,
   getAllPublicRooms,
-  updateRoomStatus
+  updateRoomStatus,
+  extractRoomDataFromFile // Add new function to export
 };

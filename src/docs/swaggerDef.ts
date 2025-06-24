@@ -1,5 +1,5 @@
-import { name, version, repository } from '../../package.json';
-import config from '../config/config';
+import { name, repository, version } from '../../package.json';
+import config from '../config';
 
 const swaggerDef = {
   openapi: '3.0.0',

@@ -2,12 +2,12 @@
 import { createServer } from 'http';
 import app from './app';
 import prisma from './client';
-import config from './config/config';
+import config from './config';
 import logger from './config/logger';
 import SocketServer from './socket/socket.server';
 
 const httpServer = createServer(app);
-let socketServer: SocketServer; 
+let socketServer: SocketServer;
 
 prisma.$connect().then(() => {
   logger.info('Connected to SQL Database');

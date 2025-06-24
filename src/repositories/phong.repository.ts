@@ -598,6 +598,85 @@ const findRoomById = async (roomId: string) => {
   });
 };
 
+const createRoomWithPages = async (roomData: any, channelId: string) => {
+  return await prisma.pHONG.create({
+    data: {
+      tenPhong: roomData.tenPhong,
+      moTa: roomData.moTa,
+      maKenh: channelId,
+      trangThai: TrangThai.HOAT_DONG,
+      hoatDong: HoatDongPhong.OFFLINE,
+      trangs: {
+        create: roomData.danhSachTrang.map((trang: any, index: number) => ({
+          loaiTrang: trang.loaiTrang,
+          thuTu: index + 1,
+          tieuDe: trang.tieuDe,
+          noiDung: trang.noiDung,
+          thoiGianGioiHan: trang.thoiGianGioiHan,
+          diem: trang.diem || Diem.BINH_THUONG,
+          loaiCauTraLoi: trang.loaiCauTraLoi,
+          luaChon: trang.danhSachLuaChon ? {
+            create: trang.danhSachLuaChon.map((luaChon: any) => ({
+              noiDung: luaChon.noiDung,
+              ketQua: luaChon.ketQua
+            }))
+          } : undefined
+        }))
+      }
+    },
+    include: {
+      trangs: {
+        include: {
+          luaChon: true
+        },
+        orderBy: {
+          thuTu: 'asc'
+        }
+      }
+    }
+  });
+};
+
+const createPublicRoomWithPages = async (roomData: any, userId: string) => {
+  return await prisma.pHONG.create({
+    data: {
+      tenPhong: roomData.tenPhong,
+      moTa: roomData.moTa,
+      maNguoiTao: userId,
+      maKenh: null,
+      trangThai: TrangThai.HOAT_DONG,
+      hoatDong: HoatDongPhong.OFFLINE,
+      trangs: {
+        create: roomData.danhSachTrang.map((trang: any, index: number) => ({
+          loaiTrang: trang.loaiTrang,
+          thuTu: index + 1,
+          tieuDe: trang.tieuDe,
+          noiDung: trang.noiDung,
+          thoiGianGioiHan: trang.thoiGianGioiHan,
+          diem: trang.diem || Diem.BINH_THUONG,
+          loaiCauTraLoi: trang.loaiCauTraLoi,
+          luaChon: trang.danhSachLuaChon ? {
+            create: trang.danhSachLuaChon.map((luaChon: any) => ({
+              noiDung: luaChon.noiDung,
+              ketQua: luaChon.ketQua
+            }))
+          } : undefined
+        }))
+      }
+    },
+    include: {
+      trangs: {
+        include: {
+          luaChon: true
+        },
+        orderBy: {
+          thuTu: 'asc'
+        }
+      }
+    }
+  });
+};
+
 export default {
   findRoomByNameAndChannel,
   createRoom,
@@ -615,5 +694,7 @@ export default {
   findAllRoomsByChannel,
   findAllPublicRooms,
   updateRoomStatus,
-  findRoomById
+  findRoomById,
+  createRoomWithPages,      // Add new function
+  createPublicRoomWithPages  // Add new function
 };

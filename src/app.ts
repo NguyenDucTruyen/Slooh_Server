@@ -4,7 +4,7 @@ import express from 'express';
 import helmet from 'helmet';
 import httpStatus from 'http-status';
 import passport from 'passport';
-import config from './config/config';
+import config from './config';
 import morgan from './config/morgan';
 import { googleStrategy, jwtStrategy } from './config/passport';
 import { errorConverter, errorHandler } from './middlewares/error';

@@ -4,7 +4,7 @@ import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
 import { Socket, Server as SocketIOServer } from 'socket.io';
 import prisma from '../client';
-import config from '../config/config';
+import config from '../config';
 import logger from '../config/logger';
 import phienTrinhChieuHandler from './handlers/phienTrinhChieu.handler';
 

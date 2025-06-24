@@ -2,7 +2,7 @@ import { NGUOIDUNG as User } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
 import httpStatus from 'http-status';
 import passport from 'passport';
-import config from '../config/config';
+import config from '../config';
 import { roleRights } from '../config/roles';
 import ApiError from '../utils/ApiError';
 const verifyCallback =

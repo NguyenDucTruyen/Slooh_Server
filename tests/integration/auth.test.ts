@@ -1,20 +1,20 @@
-import request from 'supertest';
 import { faker } from '@faker-js/faker';
-import httpStatus from 'http-status';
-import httpMocks from 'node-mocks-http';
-import moment from 'moment';
+import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+import { Role, TokenType, User } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import httpStatus from 'http-status';
+import moment from 'moment';
+import httpMocks from 'node-mocks-http';
+import request from 'supertest';
 import app from '../../src/app';
-import config from '../../src/config/config';
+import prisma from '../../src/client';
+import config from '../../src/config';
+import { roleRights } from '../../src/config/roles';
 import auth from '../../src/middlewares/auth';
 import { emailService, tokenService } from '../../src/services';
 import ApiError from '../../src/utils/ApiError';
+import { admin, insertUsers, userOne } from '../fixtures/user.fixture';
 import setupTestDB from '../utils/setupTestDb';
-import { describe, beforeEach, test, expect, jest } from '@jest/globals';
-import { userOne, admin, insertUsers } from '../fixtures/user.fixture';
-import { Role, TokenType, User } from '@prisma/client';
-import prisma from '../../src/client';
-import { roleRights } from '../../src/config/roles';
 
 setupTestDB();
 
