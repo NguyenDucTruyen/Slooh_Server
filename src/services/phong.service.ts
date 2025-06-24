@@ -467,6 +467,7 @@ const extractRoomDataFromFile = async (
   file: Express.Multer.File,
   roomName: string,
   channelId: string | null,
+  userPrompt: string,
   userId: string
 ): Promise<ServiceResponse> => {
   try {
@@ -509,7 +510,7 @@ const extractRoomDataFromFile = async (
     }
 
     // Generate room data from content using Gemini
-    const roomData = await generateRoomDataFromContent(fileContent, roomName);
+    const roomData = await generateRoomDataFromContent(fileContent, roomName, userPrompt);
 
     if (!roomData) {
       return createErrorResponse(

@@ -32,7 +32,7 @@ Nhiệm vụ của bạn là phân tích nội dung được cung cấp và tạ
 2. Các câu hỏi kiểm tra (loaiTrang: "CAU_HOI") với các lựa chọn
 
 Hãy chia nội dung thành các slide ngắn gọn, dễ hiểu. Mỗi slide nên tập trung vào một ý chính.
-Tạo ít nhất 3-5 câu hỏi kiểm tra dựa trên nội dung đã học.
+Tạo ít nhất 3-5 câu hỏi kiểm tra dựa trên nội dung đã học(số lượng có thể nhiều hơn nếu cần thiết, hãy ưu tiên User Prompt để tạo ra các nội dung và câu hỏi phù hợp).
 
 Trả về kết quả dưới dạng JSON với cấu trúc sau:
 {
@@ -62,14 +62,22 @@ Lưu ý:
 - Nội dung phải súc tích, dễ hiểu
 - Câu hỏi phải liên quan trực tiếp đến nội dung đã học
 - Sử dụng tiếng Việt
-- Tạo tối thiểu 5 slide nội dung và 3 câu hỏi
+- Tránh lặp lại nội dung trong các slide
+- Đảm bảo mỗi slide có tiêu đề rõ ràng
+- Mỗi nội dung nên có câu hỏi kiểm tra tương ứng
+- Nên kết hợp MULTI_SELECT, TRUE_FALSE để tạo sự đa dạng trong câu hỏi
 `;
 
 export const generateRoomDataFromContent = async (
   content: string,
-  roomName: string
+  roomName: string,
+  userPrompt: string
 ): Promise<ExtractedRoomData | null> => {
   try {
+    console.log('Starting room data generation with Gemini...');
+    console.log('Content length:', content.length);
+    console.log('Room name:', roomName);
+
     const model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash',
       generationConfig: {
@@ -84,6 +92,9 @@ export const generateRoomDataFromContent = async (
     const prompt = `
 ${systemPrompt}
 
+User Prompt:
+${userPrompt}
+
 Tên phòng học: ${roomName}
 
 Nội dung tài liệu:
@@ -91,6 +102,8 @@ ${content}
 
 Hãy tạo cấu trúc phòng học từ nội dung trên.
 `;
+    console.log('Prompt length:', prompt.length);
+    console.log('Prompt:', prompt);
 
     const result = await model.generateContent(prompt);
     const response = await result.response;

@@ -129,7 +129,7 @@ const updateRoomStatus = catchAsync(async (req, res) => {
 const extractRoomFromFile = catchAsync(async (req, res) => {
   const user = req.user as User;
   const file = req.file;
-  const { maKenh, tenPhong } = req.body;
+  const { maKenh, tenPhong, userPrompt } = req.body;
 
   if (!file) {
     return sendResponse(res, 400, false, 'Vui lòng tải lên một file.', null);
@@ -139,6 +139,7 @@ const extractRoomFromFile = catchAsync(async (req, res) => {
     file,
     tenPhong,
     maKenh,
+    userPrompt,
     user.maNguoiDung
   );
   
