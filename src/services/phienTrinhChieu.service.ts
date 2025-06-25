@@ -1,5 +1,5 @@
 // src/services/phienTrinhChieu.service.ts
-import { HoatDongPhong } from '@prisma/client';
+import { Diem, HoatDongPhong } from '@prisma/client';
 import httpStatus from 'http-status';
 import prisma from '../client';
 import { createErrorResponse, createSuccessResponse } from '../helpers/CreateResponse.helper';
@@ -7,6 +7,20 @@ import { ServiceResponse } from '../interfaces/ServiceResponse.interface';
 import phienTrinhChieuRepository from '../repositories/phienTrinhChieu.repository';
 import phongRepository from '../repositories/phong.repository';
 import kenhService from './kenh.service';
+
+// Helper function to convert Diem enum to base points
+function diemToBasePoints(diem: Diem): number {
+  switch (diem) {
+    case Diem.BINH_THUONG:
+      return 1000;
+    case Diem.GAP_DOI:
+      return 2000;
+    case Diem.KHONG_DIEM:
+      return 0;
+    default:
+      return 1000;
+  }
+}
 
 class PhienTrinhChieuService {
   // Create new presentation session
@@ -43,7 +57,6 @@ class PhienTrinhChieuService {
       if (activeSession) {
         // Delete the active session before creating a new one
         await phienTrinhChieuRepository.deletePhien(activeSession.maPhien);
-        console.log('Deleted existing active session:', activeSession.maPhien);
       }
 
       const result = await prisma.$transaction(async (tx) => {
@@ -191,9 +204,7 @@ class PhienTrinhChieuService {
           httpStatus.FORBIDDEN,
           'Bạn không phải thành viên của phiên này.'
         );
-      }
-
-      // Submit answer
+      } // Submit answer
       const answer = await phienTrinhChieuRepository.submitAnswer(
         maThanhVienPhien,
         maLuaChon,
@@ -202,9 +213,23 @@ class PhienTrinhChieuService {
 
       // Calculate points if answer is correct
       if (answer.luaChon.ketQua) {
-        const basePoints = 1000;
-        const timeBonus = Math.max(0, 1000 - thoiGian * 50); // Lose 50 points per second
+        // Find the page (trang) that contains this choice to get the Diem value
+        const trang = phien.phong.trangs.find((t) =>
+          t.luaChon.some((lc) => lc.maLuaChon === maLuaChon)
+        );
+
+        if (!trang) {
+          return createErrorResponse(
+            httpStatus.NOT_FOUND,
+            'Không tìm thấy trang chứa lựa chọn này.'
+          );
+        }
+
+        const basePoints = diemToBasePoints(trang.diem);
+        const timeBonus = Math.max(0, thoiGian * 50);
+        console.log(`Base Points: ${basePoints}, Time Bonus: ${timeBonus}`);
         const totalPoints = basePoints + timeBonus;
+        console.log(`Total Points Awarded: ${totalPoints}`);
 
         await phienTrinhChieuRepository.updateMemberScore(maThanhVienPhien, totalPoints);
       }
@@ -217,8 +242,7 @@ class PhienTrinhChieuService {
       return createErrorResponse(httpStatus.INTERNAL_SERVER_ERROR, 'Không thể gửi câu trả lời.');
     }
   }
-
-  // Submit multiple answers
+  // Submit multiple answers for multi-select questions
   async submitMultipleAnswers(
     maPhien: string,
     maThanhVienPhien: string,
@@ -240,6 +264,24 @@ class PhienTrinhChieuService {
         );
       }
 
+      if (maLuaChons.length === 0) {
+        return createSuccessResponse(httpStatus.OK, 'Gửi câu trả lời thành công.', {
+          correct: false
+        });
+      }
+
+      // Find the page (trang) that contains the submitted choices
+      const trang = phien.phong.trangs.find((t) =>
+        maLuaChons.every((maLuaChon) => t.luaChon.some((lc) => lc.maLuaChon === maLuaChon))
+      );
+
+      if (!trang) {
+        return createErrorResponse(
+          httpStatus.BAD_REQUEST,
+          'Các lựa chọn không thuộc cùng một trang.'
+        );
+      }
+
       // Submit all answers
       const answers = await Promise.all(
         maLuaChons.map((maLuaChon) =>
@@ -247,14 +289,32 @@ class PhienTrinhChieuService {
         )
       );
 
-      // Check if all selected answers are correct
-      const allAnswersCorrect = answers.every((answer) => answer.luaChon.ketQua === true);
-      const anyAnswerIncorrect = answers.some((answer) => answer.luaChon.ketQua === false);
+      // For multi-select questions, we need to check:
+      // 1. All correct answers must be selected
+      // 2. No incorrect answers should be selected
 
-      // Only award points if all selected answers are correct and no incorrect ones were selected
-      if (allAnswersCorrect && !anyAnswerIncorrect) {
-        const basePoints = 1000;
-        const timeBonus = Math.max(0, 1000 - thoiGian * 50); // Lose 50 points per second
+      // Get all choices for this page
+      const allChoicesOnPage = trang.luaChon;
+      const correctChoices = allChoicesOnPage.filter((choice) => choice.ketQua === true);
+      const selectedChoiceIds = new Set(maLuaChons);
+
+      // Check if all correct answers are selected
+      const allCorrectSelected = correctChoices.every((choice) =>
+        selectedChoiceIds.has(choice.maLuaChon)
+      );
+
+      // Check if any selected answers are incorrect
+      const selectedChoices = allChoicesOnPage.filter((choice) =>
+        selectedChoiceIds.has(choice.maLuaChon)
+      );
+      const anyIncorrectSelected = selectedChoices.some((choice) => choice.ketQua === false);
+
+      // Award points only if all correct answers are selected and no incorrect ones
+      const isCompletelyCorrect = allCorrectSelected && !anyIncorrectSelected;
+
+      if (isCompletelyCorrect) {
+        const basePoints = diemToBasePoints(trang.diem);
+        const timeBonus = Math.max(0, thoiGian * 50);
         const totalPoints = basePoints + timeBonus;
 
         await phienTrinhChieuRepository.updateMemberScore(maThanhVienPhien, totalPoints);
@@ -283,7 +343,8 @@ class PhienTrinhChieuService {
         tenThanhVien: member.tenThanhVien,
         anhDaiDien: member.anhDaiDien,
         tongDiem: member.tongDiem,
-        isUser: member.maNguoiDung ? true : false
+        isUser: member.maNguoiDung ? true : false,
+        maThanhVienPhien: member.maThanhVienPhien
       }));
 
       return createSuccessResponse(

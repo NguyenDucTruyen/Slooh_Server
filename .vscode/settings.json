@@ -3,7 +3,7 @@
   "tabnine.experimentalAutoImports": true,
   "security.workspace.trust.untrustedFiles": "open",
   "window.zoomLevel": 1,
-  "files.autoSave": "afterDelay",
+  "files.autoSave": "off",
   "javascript.updateImportsOnFileMove.enabled": "always",
   "typescript.updateImportsOnFileMove.enabled": "always",
   "terminal.integrated.enableMultiLinePasteWarning": "never",
@@ -16,7 +16,6 @@
     "scminput": false
   },
   "python.formatting.provider": "autopep8",
-
   // 💡 Tự động format khi lưu với Prettier
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
@@ -28,7 +27,6 @@
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-
   "chat.editing.alwaysSaveWithGeneratedChanges": true,
   "remote.SSH.remotePlatform": {
     "vr-01": "linux",

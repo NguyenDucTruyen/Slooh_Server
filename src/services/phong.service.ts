@@ -68,9 +68,7 @@ const createPublicRoom = async (
 
 const getRoomDetails = async (roomId: string): Promise<ServiceResponse> => {
   try {
-    console.log('Đang lấy chi tiết phòng với ID:', roomId);
     const room = await phongRepository.getRoomById(roomId);
-    console.log('Chi tiết phòng:', room);
     if (!room) {
       return createErrorResponse(httpStatus.NOT_FOUND, 'Không tìm thấy phòng.');
     }
