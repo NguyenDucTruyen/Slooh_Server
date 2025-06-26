@@ -2,7 +2,7 @@ import { Quyen as Role } from '@prisma/client';
 
 const allRoles = {
   [Role.NGUOI_DUNG]: [],
-  [Role.ADMIN]: ['getUsers', 'manageUsers', 'manageChannels', 'manageRooms']
+  [Role.ADMIN]: ['getUsers', 'manageUsers', 'manageChannels', 'manageRooms', 'manageReports']
 };
 
 export const roles = Object.keys(allRoles);

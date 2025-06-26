@@ -1,4 +1,10 @@
-import { Prisma, Quyen as Role, TrangThai as Status, NGUOIDUNG as User } from '@prisma/client';
+import {
+  Prisma,
+  Quyen,
+  Quyen as Role,
+  TrangThai as Status,
+  NGUOIDUNG as User
+} from '@prisma/client';
 import httpStatus from 'http-status';
 import prisma from '../client';
 import ApiError from '../utils/ApiError';
@@ -64,9 +70,7 @@ const queryUsers = async (
   }
 
   // Handle quyen filtering
-  if (filter.quyen && filter.quyen !== '') {
-    whereClause.quyen = filter.quyen;
-  }
+  whereClause.quyen = Quyen.NGUOI_DUNG;
 
   // Execute both queries in parallel for better performance
   const [users, total] = await Promise.all([

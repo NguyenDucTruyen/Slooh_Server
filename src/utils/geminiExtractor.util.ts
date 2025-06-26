@@ -121,7 +121,7 @@ Hãy tạo cấu trúc phòng học từ nội dung trên.
           thuTu: index + 1,
           // Set default values cho các trường optional
           diem: 'BINH_THUONG',
-          thoiGianGioiHan: trang.loaiTrang === 'CAU_HOI' ? 60 : null,
+          thoiGianGioiHan: trang.loaiTrang === 'CAU_HOI' ? 30 : null,
           // Ensure all required fields are present
           tieuDe: trang.tieuDe || '',
           noiDung: trang.noiDung || '',

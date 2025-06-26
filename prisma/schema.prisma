@@ -73,6 +73,11 @@ enum VaiTroPhien {
   CHU_PHIEN
 }
 
+enum TrangThaiBaoCao {
+  CHUA_XU_LY
+  DA_XU_LY
+}
+
 model NGUOIDUNG {
   maNguoiDung    String                     @id @default(uuid())
   hoTen          String
@@ -205,7 +210,7 @@ model THANHVIENPHIENTRINHCHIEU {
   maNguoiDung      String?
   maPhien          String
   tenThanhVien     String
-  anhDaiDien       String?  
+  anhDaiDien       String?
   vaiTro           VaiTroPhien @default(THANH_VIEN)
   tongDiem         Int         @default(0)
 
@@ -228,12 +233,14 @@ model CAUTRALOI {
 }
 
 model BAOCAO {
-  maBaoCao    String   @id @default(uuid())
+  maBaoCao    String          @id @default(uuid())
   maNguoiDung String
   maPhong     String
   noiDung     String
   hinhAnh     String?
-  ngayTao     DateTime @default(now())
+  trangThai   TrangThaiBaoCao @default(CHUA_XU_LY)
+  ngayTao     DateTime        @default(now())
+  ngayXoa     DateTime?
 
   nguoiDung NGUOIDUNG @relation(fields: [maNguoiDung], references: [maNguoiDung], onDelete: Cascade)
   phong     PHONG     @relation(fields: [maPhong], references: [maPhong], onDelete: Cascade)

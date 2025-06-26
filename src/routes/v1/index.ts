@@ -2,6 +2,7 @@
 import express from 'express';
 import config from '../../config';
 import authRoute from './auth.route';
+import baoCaoRoute from './baoCao.route';
 import docsRoute from './docs.route';
 import kenhRoute from './kenh.route';
 import phienTrinhChieuRoute from './phienTrinhChieu.route';
@@ -30,6 +31,10 @@ const defaultRoutes = [
   {
     path: '/phien',
     route: phienTrinhChieuRoute
+  },
+  {
+    path: '/baocao',
+    route: baoCaoRoute
   }
 ];
 
