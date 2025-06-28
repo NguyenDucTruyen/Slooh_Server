@@ -5,7 +5,9 @@
   "main": "src/index.ts",
   "repository": "https://github.com/NguyenDucTruyen/Slooh_Server.git",
   "scripts": {
-    "start": "yarn build && pm2 start ecosystem.config.json --no-daemon",
+    "start": "pm2 start ecosystem.config.json --no-daemon",
+    "build": "rimraf build && tsc -p tsconfig.prod.json || true",
+    "build:clean": "rimraf build && tsc -p tsconfig.json --skipLibCheck",
     "dev": "cross-env NODE_ENV=development nodemon src/index.ts",
     "test": "docker-compose -f docker-compose.only-db-test.yml up -d && yarn db:push && jest -i --colors --verbose --detectOpenHandles && docker-compose -f docker-compose.only-db-test.yml down",
     "test:watch": "docker-compose -f docker-compose.only-db-test.yml up -d && yarn db:push && jest -i --watchAll && docker-compose -f docker-compose.only-db-test.yml down",
@@ -18,13 +20,12 @@
     "db:reset": "prisma migrate reset --force",
     "db:seed": "cross-env NODE_ENV=development ts-node prisma/seed.ts",
     "create-admin": "cross-env NODE_ENV=development ts-node scripts/create-admin.ts",
-    "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up",
+    "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build",
     "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up",
     "docker:test": "docker-compose -f docker-compose.yml -f docker-compose.test.yml up",
     "docker:dev-db:start": "docker-compose -f docker-compose.only-db-dev.yml up -d",
     "docker:dev-db:stop": "docker-compose -f docker-compose.only-db-dev.yml down",
     "prepare": "husky install",
-    "build": "rimraf build && tsc -p tsconfig.json",
     "format": "prettier --write ."
   },
   "keywords": [
@@ -77,6 +78,7 @@
     "nodemon": "^2.0.20",
     "prettier": "^3.5.3",
     "prisma": "^4.10.1",
+    "rimraf": "^3.0.2",
     "supertest": "^6.3.3",
     "swagger-jsdoc": "^6.2.5",
     "swagger-ui-express": "^4.6.0",

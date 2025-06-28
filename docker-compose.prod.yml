@@ -3,4 +3,11 @@ version: '3.8'
 services:
   node-app:
     container_name: node-app-prod
-    command: yarn start
+    command: >
+      sh -c "
+        npx prisma generate &&
+        npx prisma db push &&
+        yarn start
+      "
+    environment:
+      - NODE_ENV=production

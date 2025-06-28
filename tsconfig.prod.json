@@ -1,0 +1,29 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "es2016",
+    "outDir": "./build",
+    "module": "commonjs",
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "noEmit": false
+  },
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "tests",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "jest.config.js",
+    "coverage"
+  ],
+  "include": [
+    "src/**/*"
+  ]
+}
